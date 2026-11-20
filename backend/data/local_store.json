@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "test@prodilstudio.com",
+      "password_hash": "$2a$10$IA.tkgVpuhHu3k0jG0fP1O8NuavI7YAAV9pMBw46pmKowVq29kbgW",
+      "full_name": "Alex Morgan",
+      "avatar_url": null,
+      "is_verified": true,
+      "created_at": "2026-11-20T02:56:07.806Z"
+    },
+    {
+      "id": 2,
+      "email": "test2@prodil.dev",
+      "password_hash": "$2a$10$gp9USpr/LLpiU0hAauwUAeOHKSkCi6g2pl.J3.p3xoOAGtdZF.ePK",
+      "full_name": "John Doe",
+      "avatar_url": null,
+      "is_verified": true,
+      "created_at": "2026-11-20T02:56:31.334Z"
+    }
+  ],
+  "verification_tokens": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "code": "247855",
+      "token": "247855",
+      "expires_at": "2026-11-20T03:11:07.806Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "code": "381493",
+      "token": "381493",
+      "expires_at": "2026-11-20T03:11:31.334Z"
+    }
+  ],
+  "master_profiles": {},
+  "cv_documents": {},
+  "cover_letters": {}
+}

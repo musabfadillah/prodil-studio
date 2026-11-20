@@ -1,0 +1,27 @@
+{
+  "name": "prodil-studio-workspace",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Prodil Studio - All-in-one Career & Personal Document Builder (Vercel Frontend + Hostinger VPS Backend)",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run start",
+    "build:frontend": "npm --prefix frontend run build",
+    "db:migrate": "npm --prefix backend run db:migrate",
+    "install:all": "npm --prefix frontend install && npm --prefix backend install"
+  },
+  "keywords": [
+    "cv-builder",
+    "ats-resume",
+    "gemini-ai",
+    "react",
+    "tailwind",
+    "nodejs",
+    "express",
+    "postgresql",
+    "vercel",
+    "hostinger"
+  ],
+  "author": "Prodil Studio",
+  "license": "ISC"
+}
