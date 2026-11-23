@@ -151,6 +151,8 @@ npm run dev
 5. Pada bagian **Root Directory**, klik **Edit** dan pilih: `frontend`.
 6. Di bagian **Environment Variables**, tambahkan:
    - `VITE_API_URL` = `https://api.domainkamu.com` (gunakan HTTPS untuk mencegah mixed content pada situs Vercel).
+   - `VITE_GOOGLE_CLIENT_ID` = Google OAuth Web Client ID.
+   - Di Google Cloud Console, daftarkan origin frontend produksi dan origin localhost yang digunakan saat development. Gunakan Client ID yang sama sebagai `GOOGLE_CLIENT_ID` di backend.
 7. Klik **Deploy**!
 8. Selesai! Web aplikasi Prodil Studio kamu langsung aktif dengan link gratis ber-HTTPS (misal: `https://prodil-studio.vercel.app`).
 
@@ -175,6 +177,7 @@ npm run dev
    NODE_ENV=production
    FRONTEND_URL=https://prodil-studio.vercel.app
    JWT_SECRET=<buat-rahasia-acak-panjang>
+   GOOGLE_CLIENT_ID=<google-oauth-web-client-id>
    DATABASE_URL=postgres://prodil_user:ProdilSecurePass2026!@localhost:5432/prodil_studio
    ```
 5. **Inisialisasi Tabel PostgreSQL**:

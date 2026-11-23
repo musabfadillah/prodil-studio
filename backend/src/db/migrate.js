@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS verification_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -50,6 +53,10 @@ CREATE TABLE IF NOT EXISTS master_profiles (
 
 ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '[]';
 ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS career_objective TEXT DEFAULT '';
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS custom_sections_data JSONB DEFAULT '[]';
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS section_order JSONB DEFAULT '[]';
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS visible_sections JSONB DEFAULT '{}';
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS hidden_fields JSONB DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS cv_documents (
     id VARCHAR(64) PRIMARY KEY,

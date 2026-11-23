@@ -21,6 +21,7 @@ interface AuthContextType {
   closeAuthModal: () => void;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string; requiresVerification?: boolean }>;
   register: (email: string, password: string, fullName: string) => Promise<{ success: boolean; message: string; previewCode?: string }>;
+  loginWithGoogle: (credential: string) => Promise<{ success: boolean; message: string }>;
   verifyEmail: (code: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
@@ -96,6 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async (credential: string) => {
+    try {
+      const res = await api.loginWithGoogle(credential);
+      if (res.success && res.user) {
+        setUser(res.user);
+        setAuthModalOpen(false);
+        return { success: true, message: res.message || 'Login Google berhasil' };
+      }
+      return { success: false, message: res.message || 'Login Google gagal' };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Login Google gagal',
+      };
+    }
+  };
+
   const verifyEmail = async (code: string) => {
     try {
       const res = await api.verifyEmail(unverifiedEmail, code);
@@ -130,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeAuthModal,
         login,
         register,
+        loginWithGoogle,
         verifyEmail,
         logout,
       }}

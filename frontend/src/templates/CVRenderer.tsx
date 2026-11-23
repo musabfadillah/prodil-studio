@@ -161,7 +161,7 @@ export const CVRenderer: React.FC<CVRendererProps> = ({ profile, config, onSecti
   const customSections = (profile.customSections || []).filter((section) => section.visible);
   const order = config.sectionOrder?.length
     ? config.sectionOrder
-    : ['summary', 'experience', 'projects', 'education', 'skills', 'languages', 'certifications'] as LegacySectionKey[];
+    : ['summary', 'experience', 'projects', 'education', 'skills', 'achievements', 'objective', 'languages', 'certifications'] as LegacySectionKey[];
   const orderedSections = order
     .filter((key) => !hasSidebarSections || !SIDEBAR_SECTION_KEYS.has(key))
     .map((key) => renderSection(key, false))

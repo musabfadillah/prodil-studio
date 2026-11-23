@@ -380,6 +380,10 @@
     transition: none !important;
   }
 
+  .studio-grid > [data-print-cv-preview="true"] {
+    display: block !important;
+  }
+
   .printable-document,
   .a4-sheet {
     width: 210mm !important;
@@ -472,7 +476,6 @@
   }
 
   .cv-item,
-  .cv-section,
   .experience-block,
   .education-block {
     page-break-inside: avoid !important;

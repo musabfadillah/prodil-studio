@@ -1,7 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+
+interface GoogleCredentialResponse {
+  credential?: string;
+}
+
+interface GoogleButtonOptions {
+  theme: 'outline';
+  size: 'large';
+  text: 'continue_with';
+  shape: 'rectangular';
+  width: number;
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: GoogleCredentialResponse) => void;
+          }) => void;
+          renderButton: (parent: HTMLElement, options: GoogleButtonOptions) => void;
+        };
+      };
+    };
+  }
+}
+
+const GOOGLE_IDENTITY_SCRIPT = 'https://accounts.google.com/gsi/client';
 
 export const AuthModal: React.FC = () => {
   const { t } = useLanguage();
@@ -13,6 +43,7 @@ export const AuthModal: React.FC = () => {
     closeAuthModal,
     openAuthModal,
     login,
+    loginWithGoogle,
     register,
     verifyEmail,
   } = useAuth();
@@ -24,8 +55,99 @@ export const AuthModal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || '';
+  const loginWithGoogleRef = useRef(loginWithGoogle);
+  loginWithGoogleRef.current = loginWithGoogle;
+
+  useEffect(() => {
+    if (!authModalOpen || authModalView === 'verify') return;
+    const container = document.getElementById('google-signin-button');
+    if (!container || !googleClientId) return;
+
+    let active = true;
+    const initializeGoogleButton = () => {
+      if (!active || !window.google?.accounts.id || !container.isConnected) return;
+      container.replaceChildren();
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          if (!response.credential) {
+            setErrorMsg('Google tidak mengembalikan kredensial login.');
+            return;
+          }
+          setErrorMsg('');
+          setIsSubmitting(true);
+          void loginWithGoogleRef.current(response.credential)
+            .then((result) => {
+              if (!result.success) setErrorMsg(result.message);
+            })
+            .catch((error: unknown) => {
+              setErrorMsg(error instanceof Error ? error.message : 'Login Google gagal.');
+            })
+            .finally(() => setIsSubmitting(false));
+        },
+      });
+      window.google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        width: Math.min(320, container.clientWidth || 320),
+      });
+    };
+
+    if (window.google?.accounts.id) {
+      initializeGoogleButton();
+      return () => { active = false; };
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_IDENTITY_SCRIPT}"]`);
+    const script = existingScript || document.createElement('script');
+    const handleScriptError = () => {
+      if (active) setErrorMsg('Layanan login Google tidak dapat dimuat.');
+    };
+    script.addEventListener('load', initializeGoogleButton);
+    script.addEventListener('error', handleScriptError);
+    if (!existingScript) {
+      script.src = GOOGLE_IDENTITY_SCRIPT;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      active = false;
+      script.removeEventListener('load', initializeGoogleButton);
+      script.removeEventListener('error', handleScriptError);
+    };
+  }, [authModalOpen, authModalView, googleClientId]);
 
   if (!authModalOpen) return null;
+
+  const googleSignInButton = (
+    <div className="mt-4">
+      <div className="mb-3 flex items-center gap-3 text-[11px] text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span>{t('orEmailForm')}</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+      <div id="google-signin-button" className="flex justify-center">
+        <button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => {
+            if (!googleClientId) {
+              setErrorMsg('Login Google belum dikonfigurasi. Isi VITE_GOOGLE_CLIENT_ID untuk mengaktifkannya.');
+            }
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+        >
+          <span className="text-base font-extrabold text-blue-600">G</span>
+          {t('continueWithGoogle')}
+        </button>
+      </div>
+    </div>
+  );
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +271,8 @@ export const AuthModal: React.FC = () => {
                 </button>
               </form>
 
+              {googleSignInButton}
+
               <p className="mt-4 text-center text-xs text-slate-500">
                 {t('noAccount')}{' '}
                 <button
@@ -218,6 +342,8 @@ export const AuthModal: React.FC = () => {
                   {isSubmitting ? t('processingAuth') : t('registerNow')} <ArrowRight size={14} />
                 </button>
               </form>
+
+              {googleSignInButton}
 
               <p className="mt-4 text-center text-xs text-slate-500">
                 {t('alreadyHaveAccount')}{' '}

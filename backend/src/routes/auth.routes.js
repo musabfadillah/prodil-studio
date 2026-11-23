@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import db from '../config/db.js';
 import { sendVerificationEmail } from '../utils/email.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -344,6 +345,136 @@ router.post('/login', authLimiter, async (req, res) => {
   } catch (err) {
     console.error('[Login Error]:', err);
     res.status(500).json({ success: false, message: 'Gagal login: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/auth/google
+ */
+router.post('/google', authLimiter, async (req, res) => {
+  const { credential } = req.body || {};
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(503).json({ success: false, message: 'Login Google belum dikonfigurasi di server.' });
+  }
+  if (typeof credential !== 'string' || !credential) {
+    return res.status(400).json({ success: false, message: 'Kredensial Google wajib dikirim.' });
+  }
+
+  let tokenVerified = false;
+  try {
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    tokenVerified = true;
+    const payload = ticket.getPayload();
+    if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+      return res.status(401).json({ success: false, message: 'Akun Google tidak memiliki email terverifikasi.' });
+    }
+
+    const googleId = payload.sub;
+    const email = payload.email.toLowerCase().trim();
+    const fullName = payload.name?.trim() || email.split('@')[0];
+    const avatarUrl = payload.picture || null;
+    let user;
+
+    if (db.getDbStatus().postgresConnected) {
+      const byGoogleId = await db.query(
+        'SELECT id, email, full_name, avatar_url, google_id, is_verified FROM users WHERE google_id = $1',
+        [googleId]
+      );
+      const byEmail = await db.query(
+        'SELECT id, email, full_name, avatar_url, google_id, is_verified FROM users WHERE email = $1',
+        [email]
+      );
+
+      if (byGoogleId.rows[0] && byEmail.rows[0]
+        && String(byGoogleId.rows[0].id) !== String(byEmail.rows[0].id)) {
+        return res.status(409).json({ success: false, message: 'Email Google sudah terhubung ke akun lain.' });
+      }
+
+      user = byGoogleId.rows[0] || byEmail.rows[0];
+      if (user?.google_id && user.google_id !== googleId) {
+        return res.status(409).json({ success: false, message: 'Email ini terhubung ke akun Google lain.' });
+      }
+
+      if (user) {
+        const updated = await db.query(
+          `UPDATE users SET email = $1, full_name = $2, avatar_url = $3, google_id = $4, is_verified = TRUE,
+           updated_at = NOW() WHERE id = $5
+           RETURNING id, email, full_name, avatar_url, is_verified`,
+          [email, fullName, avatarUrl, googleId, user.id]
+        );
+        user = updated.rows[0];
+      } else {
+        const created = await db.query(
+          `INSERT INTO users (email, full_name, avatar_url, google_id, is_verified)
+           VALUES ($1, $2, $3, $4, TRUE)
+           RETURNING id, email, full_name, avatar_url, is_verified`,
+          [email, fullName, avatarUrl, googleId]
+        );
+        user = created.rows[0];
+      }
+    } else {
+      const byGoogleId = db.localStore.users.find((item) => item.google_id === googleId);
+      const byEmail = db.localStore.users.find((item) => item.email === email);
+      if (byGoogleId && byEmail && String(byGoogleId.id) !== String(byEmail.id)) {
+        return res.status(409).json({ success: false, message: 'Email Google sudah terhubung ke akun lain.' });
+      }
+      user = byGoogleId || byEmail;
+      if (user?.google_id && user.google_id !== googleId) {
+        return res.status(409).json({ success: false, message: 'Email ini terhubung ke akun Google lain.' });
+      }
+
+      if (user) {
+        Object.assign(user, {
+          email,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          google_id: googleId,
+          is_verified: true,
+        });
+      } else {
+        user = {
+          id: db.localStore.users.reduce((maxId, item) => Math.max(maxId, Number(item.id) || 0), 0) + 1,
+          email,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          google_id: googleId,
+          is_verified: true,
+          created_at: new Date().toISOString(),
+        };
+        db.localStore.users.push(user);
+      }
+      db.localStore.save();
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, full_name: user.full_name },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Login Google berhasil.',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        avatarUrl: user.avatar_url,
+        isVerified: true,
+      },
+    });
+  } catch (err) {
+    if (!tokenVerified) {
+      return res.status(401).json({ success: false, message: 'Kredensial Google tidak valid.' });
+    }
+    console.error('[Google Login Error]:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ success: false, message: 'Email Google sudah terhubung ke akun lain.' });
+    }
+    return res.status(500).json({ success: false, message: 'Login Google gagal karena kesalahan server.' });
   }
 });
 

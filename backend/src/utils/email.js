@@ -4,12 +4,22 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 let transporter = null;
+const smtpHost = process.env.SMTP_HOST?.trim() || '';
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const validSmtpHost = smtpHost.length <= 253
+  && !smtpHost.includes('://')
+  && smtpHost.split('.').every((label) =>
+    label.length > 0
+    && label.length <= 63
+    && /^[a-z\d](?:[a-z\d-]*[a-z\d])?$/i.test(label)
+  );
+const validSmtpPort = Number.isInteger(smtpPort) && smtpPort > 0 && smtpPort <= 65535;
 
-if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+if (smtpHost && process.env.SMTP_USER && process.env.SMTP_PASS && validSmtpHost && validSmtpPort) {
   try {
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      host: smtpHost,
+      port: smtpPort,
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
@@ -19,6 +29,8 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
   } catch (err) {
     console.warn('[Nodemailer Init Warning]:', err.message);
   }
+} else if (smtpHost || process.env.SMTP_USER || process.env.SMTP_PASS) {
+  console.warn('[SMTP] Configuration is incomplete or invalid; email will use fallback mode.');
 }
 
 /**

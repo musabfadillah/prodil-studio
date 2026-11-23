@@ -91,7 +91,8 @@ const commonEnglish: Dictionary = {
   loginTitle:'Sign in to Prodil Studio', registerTitle:'Create a New Account', verifyTitle:'Verify Your Email',
     loginNow:'Sign in Now',
   noAccount:'Don’t have an account?',
-  orEmailForm:'Or Email Form', registerNow:'Create Account', fullNameLabel:'Full Name',
+  orEmailForm:'Or continue with', continueWithGoogle:'Continue with Google',
+  registerNow:'Create Account', fullNameLabel:'Full Name',
   passwordHint:'Minimum 6 characters', verifyCode:'Verification Code',
   verifyEmail:'Verify Email', resendCode:'Resend Code', processingAuth:'Processing...',
 
@@ -170,7 +171,7 @@ const dictionaries: Record<LanguageCode, Dictionary> = {
     downloadPdf:'Scarica PDF ATS', pageBoundary:'Limite pagina 1 A4', present:'Presente', regards:'Cordiali saluti', subject:'Oggetto',
     loginTitle:'Accedi a Prodil Studio', registerTitle:'Crea un nuovo account', verifyTitle:'Verifica la tua email',
       loginNow:'Accedi ora', noAccount:'Non hai un account?',
-     orEmailForm:'Oppure modulo email', registerNow:'Crea account',
+     orEmailForm:'Oppure continua con', continueWithGoogle:'Continua con Google', registerNow:'Crea account',
     fullNameLabel:'Nome completo', passwordHint:'Minimo 6 caratteri', verifyCode:'Codice di verifica',
     verifyEmail:'Verifica email', resendCode:'Invia di nuovo', processingAuth:'Elaborazione...',
 
@@ -226,7 +227,7 @@ const dictionaries: Record<LanguageCode, Dictionary> = {
     downloadPdf:'ATS-PDF herunterladen', pageBoundary:'Grenze Seite 1 A4', present:'Heute', regards:'Mit freundlichen Grüßen', subject:'Betreff',
     loginTitle:'Bei Prodil Studio anmelden', registerTitle:'Neues Konto erstellen', verifyTitle:'E-Mail bestätigen',
       loginNow:'Jetzt anmelden', noAccount:'Noch kein Konto?',
-     orEmailForm:'Oder E-Mail-Formular', registerNow:'Konto erstellen',
+     orEmailForm:'Oder weiter mit', continueWithGoogle:'Mit Google fortfahren', registerNow:'Konto erstellen',
     fullNameLabel:'Vollständiger Name', passwordHint:'Mindestens 6 Zeichen', verifyCode:'Bestätigungscode',
     verifyEmail:'E-Mail bestätigen', resendCode:'Code erneut senden', processingAuth:'Verarbeitung...',
 
@@ -290,7 +291,8 @@ const dictionaries: Record<LanguageCode, Dictionary> = {
     minimalPhoto:'Minimal & Tanpa Foto', present:'Saat Ini', regards:'Hormat saya', subject:'Perihal',
     loginTitle:'Masuk ke Prodil Studio', registerTitle:'Daftar Akun Baru', verifyTitle:'Verifikasi Email Kamu',
       loginNow:'Masuk Sekarang',
-    noAccount:'Belum punya akun?',  orEmailForm:'Atau Formulir Email',
+    noAccount:'Belum punya akun?',  orEmailForm:'Atau lanjutkan dengan',
+    continueWithGoogle:'Lanjutkan dengan Google',
     registerNow:'Daftar Akun Baru', fullNameLabel:'Nama Lengkap', passwordHint:'Minimal 6 karakter',
     verifyCode:'Kode Verifikasi', verifyEmail:'Verifikasi Email', resendCode:'Kirim Ulang Kode',
     processingAuth:'Memproses...',

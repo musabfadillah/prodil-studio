@@ -60,7 +60,9 @@ function toStudioProfile(profile: Partial<ProdilMasterProfile>): Partial<StudioM
       client?: string;
     }>;
   };
-  const projectItems = profile.projectsAndWorks || raw.projects || [];
+  const projectItems = profile.projectsAndWorks?.length
+    ? profile.projectsAndWorks
+    : raw.projects || profile.projectsAndWorks || [];
   const rawLanguages = (profile.languages || []) as unknown[];
   const languageDetails = profile.languageDetails || rawLanguages
     .filter((item): item is { name: string; level: string } =>
@@ -83,18 +85,18 @@ function toStudioProfile(profile: Partial<ProdilMasterProfile>): Partial<StudioM
         }
       : undefined,
     summaries: profile.summaries || [],
-    experiences: profile.experiences?.map((item) => ({
+    experiences: (profile.experiences || []).map((item) => ({
       ...item,
       startDate: item.startDate || '',
       endDate: item.endDate || '',
-      description: item.description || item.bullets.join('\n'),
+      description: item.description || (item.bullets || []).join('\n'),
     })),
-    educations: profile.educations?.map((item) => ({
+    educations: (profile.educations || []).map((item) => ({
       ...item,
       startDate: item.startDate || '',
       endDate: item.endDate || '',
     })),
-    projects: projectItems.map((item) => ({
+    projects: (projectItems || []).map((item) => ({
       ...item,
       clientOrBrand: item.clientOrBrand || item.client || '',
       metrics: item.metrics || '',
@@ -106,6 +108,7 @@ function toStudioProfile(profile: Partial<ProdilMasterProfile>): Partial<StudioM
       : rawLanguages.map((item) => ({ name: String(item), level: '' })),
     achievements: profile.achievements || [],
     careerObjective: profile.careerObjective || '',
+    certifications: profile.certifications || [],
   };
 }
 
@@ -128,6 +131,14 @@ function toProdilCv(config: CVDesignConfig): Omit<CVDocumentConfig, 'id'> {
 
 function toStudioCv(config: CVDocumentConfig): CVDesignConfig {
   const template = PRODIL_CV_TEMPLATES.find((item) => item.id === config.templateId as TemplateId);
+  const allSections: SectionKey[] = [
+    'summary', 'experience', 'projects', 'education', 'skills',
+    'achievements', 'objective', 'languages', 'certifications',
+  ];
+  const sectionOrder: SectionKey[] = [
+    ...(config.sectionOrder || []),
+    ...allSections.filter((key) => !config.sectionOrder?.includes(key)),
+  ];
   return {
     id: config.id,
     title: config.title,
@@ -136,8 +147,8 @@ function toStudioCv(config: CVDocumentConfig): CVDesignConfig {
     fontFamily: config.fontFamily,
     fontSize: config.fontSize || 'normal',
     showPhoto: config.showPhoto !== false,
-    sectionOrder: config.sectionOrder,
-    hiddenSections: config.hiddenSections,
+    sectionOrder,
+    hiddenSections: config.hiddenSections || [],
     visibleSections: config.visibleSections || {
       summary: true, experience: true, projects: true, education: true, skills: true,
       achievements: true, objective: true, languages: true, certifications: true,
@@ -277,6 +288,31 @@ class ApiService {
     return data;
   }
 
+  async loginWithGoogle(credential: string) {
+    const res = await fetch(`${API_BASE}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    });
+    const data = await res.json() as {
+      success: boolean;
+      message?: string;
+      token?: string;
+      user?: {
+        id: number | string;
+        email: string;
+        fullName: string;
+        avatarUrl?: string;
+        isVerified: boolean;
+      };
+    };
+    if (!res.ok) {
+      throw new Error(data.message || `Login Google gagal (${res.status})`);
+    }
+    if (data.token) this.setToken(data.token);
+    return data;
+  }
+
   async resendCode(email: string) {
     const res = await fetch(`${API_BASE}/api/auth/resend-code`, {
       method: 'POST',
@@ -328,6 +364,8 @@ class ApiService {
     return this.handleResponse<{
       user: { id: number | string; email: string; fullName: string; avatarUrl?: string };
       profile: ProdilMasterProfile;
+      profileHasData?: boolean;
+      profileHasPersonalData?: boolean;
       cvs: CVDocumentConfig[];
       letters: CoverLetterConfig[];
     }>(res);

@@ -145,19 +145,41 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     api.getWorkspace()
       .then((workspace) => {
         if (!active) return;
-        if (workspace.profile) {
+        if (workspace.profile && workspace.profileHasData !== false) {
           const remote = api.toStudioProfile(workspace.profile);
           setProfile((previous) => ({
             ...previous,
             ...remote,
-            personal: { ...previous.personal, ...remote.personal },
-            summaries: remote.summaries || previous.summaries,
-            experiences: remote.experiences || previous.experiences,
-            educations: remote.educations || previous.educations,
-            projects: remote.projects || previous.projects,
-            skills: remote.skills || previous.skills,
-            languages: remote.languages || previous.languages,
-            achievements: remote.achievements || previous.achievements,
+            personal: workspace.profileHasPersonalData === false
+              ? previous.personal
+              : {
+                  ...previous.personal,
+                  ...remote.personal,
+                  fullName: remote.personal?.fullName?.trim() || previous.personal.fullName,
+                  headline: remote.personal?.headline?.trim() || previous.personal.headline,
+                  email: remote.personal?.email?.trim() || previous.personal.email,
+                  phone: remote.personal?.phone?.trim() || previous.personal.phone,
+                  location: remote.personal?.location?.trim() || previous.personal.location,
+                  website: remote.personal?.website?.trim() || previous.personal.website,
+                  photoUrl: remote.personal?.photoUrl?.trim() || previous.personal.photoUrl,
+                  socials: remote.personal?.socials?.length ? remote.personal.socials : previous.personal.socials,
+                },
+            summaries: remote.summaries?.length ? remote.summaries : previous.summaries,
+            experiences: remote.experiences?.length ? remote.experiences : previous.experiences,
+            educations: remote.educations?.length ? remote.educations : previous.educations,
+            projects: remote.projects?.length ? remote.projects : previous.projects,
+            skills: remote.skills?.length ? remote.skills : previous.skills,
+            languages: remote.languages?.length ? remote.languages : previous.languages,
+            certifications: remote.certifications?.length ? remote.certifications : previous.certifications,
+            achievements: remote.achievements?.length ? remote.achievements : previous.achievements,
+            customSections: remote.customSections?.length ? remote.customSections : previous.customSections,
+            sectionOrder: remote.sectionOrder?.length ? remote.sectionOrder : previous.sectionOrder,
+            visibleSections: Object.keys(remote.visibleSections || {}).length
+              ? { ...previous.visibleSections, ...remote.visibleSections }
+              : previous.visibleSections,
+            hiddenFields: remote.hiddenFields && Object.keys(remote.hiddenFields).length > 0
+              ? remote.hiddenFields
+              : previous.hiddenFields,
           }));
         }
         if (workspace.cvs?.[0]) {
@@ -347,7 +369,10 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           </div>
 
           {/* Right Panel: Live Document Preview */}
-          <div className={`min-w-0 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}>
+          <div
+            data-print-cv-preview="true"
+            className={`min-w-0 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}
+          >
             <DocumentPreview
               profile={profile}
               config={config}

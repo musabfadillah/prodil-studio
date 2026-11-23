@@ -10,7 +10,21 @@ const templateIds = [
   'creative-visual', 'editorial-split', 'right-sidebar', 'vertical-monolith',
   'signature-edition', 'tech-terminal', 'dark-badge',
 ];
-const defaultSections = ['summary', 'experience', 'projects', 'education', 'skills', 'achievements'];
+const defaultSections = [
+  'summary', 'experience', 'projects', 'education', 'skills',
+  'achievements', 'objective', 'languages', 'certifications',
+];
+const defaultVisibleSections = {
+  summary: true,
+  experience: true,
+  projects: true,
+  education: true,
+  skills: true,
+  achievements: true,
+  objective: true,
+  languages: true,
+  certifications: true,
+};
 
 const defaultProfile = (user = {}) => ({
   personal: {
@@ -29,9 +43,42 @@ const defaultProfile = (user = {}) => ({
   projectsAndWorks: [],
   skills: [],
   languages: [],
+  certifications: [],
   achievements: [],
   careerObjective: '',
+  hiddenFields: {},
+  sectionOrder: [],
+  visibleSections: {},
+  customSections: [],
 });
+
+function hasProfileData(row) {
+  if (!row) return false;
+  const personal = row.personal_info || row.personal || {};
+  const hasPersonalData = Object.values(personal).some((value) =>
+    Array.isArray(value) ? value.length > 0 : Boolean(String(value || '').trim())
+  );
+  const hasSections = [
+    row.summaries,
+    row.experiences,
+    row.projects,
+    row.educations,
+    row.skills,
+    row.languages,
+    row.custom_sections,
+    row.custom_sections_data,
+    row.achievements,
+  ].some((items) => Array.isArray(items) && items.length > 0);
+  return hasPersonalData || hasSections || Boolean(row.career_objective || row.careerObjective);
+}
+
+function hasPersonalData(row) {
+  if (!row) return false;
+  const personal = row.personal_info || row.personal || {};
+  return Object.values(personal).some((value) =>
+    Array.isArray(value) ? value.length > 0 : Boolean(String(value || '').trim())
+  ) || (Array.isArray(row.socials) && row.socials.length > 0);
+}
 
 function profileFromRow(row, user) {
   if (!row) return defaultProfile(user);
@@ -62,6 +109,10 @@ function profileFromRow(row, user) {
     certifications: row.custom_sections || row.certifications || [],
     achievements: row.achievements || [],
     careerObjective: row.career_objective || row.careerObjective || '',
+    hiddenFields: row.hidden_fields || row.hiddenFields || {},
+    sectionOrder: row.section_order || row.sectionOrder || [],
+    visibleSections: row.visible_sections || row.visibleSections || {},
+    customSections: row.custom_sections_data || row.customSections || [],
   };
 }
 
@@ -78,6 +129,10 @@ function profileColumns(profile) {
     JSON.stringify(profile.certifications || []),
     JSON.stringify(profile.achievements || []),
     profile.careerObjective || '',
+    JSON.stringify(profile.customSections || []),
+    JSON.stringify(profile.sectionOrder || []),
+    JSON.stringify(profile.visibleSections || {}),
+    JSON.stringify(profile.hiddenFields || {}),
   ];
 }
 
@@ -93,6 +148,7 @@ function mapCv(row) {
     fontSize: config.fontSize || 'normal',
     showPhoto: config.showPhoto !== false,
     sectionOrder: row.section_order || defaultSections,
+    visibleSections: config.visibleSections || defaultVisibleSections,
     hiddenSections: config.hiddenSections || [],
     activeSummaryId: config.activeSummaryId || 'sum-1',
     isDefault: Boolean(config.isDefault),
@@ -133,6 +189,7 @@ async function createCv(userId, payload) {
     templateId,
     fontSize: payload.fontSize || 'normal',
     showPhoto: payload.showPhoto !== false,
+    visibleSections: payload.visibleSections || defaultVisibleSections,
     hiddenSections: payload.hiddenSections || [],
     activeSummaryId: payload.activeSummaryId || 'sum-1',
     isDefault: Boolean(payload.isDefault),
@@ -196,18 +253,28 @@ router.get('/workspace', authenticateToken, async (req, res) => {
       avatarUrl: req.user.avatarUrl || req.user.avatar_url || '',
     };
     let profile;
+    let profileRow;
     if (db.getDbStatus().postgresConnected) {
       const result = await db.query('SELECT * FROM master_profiles WHERE user_id = $1', [user.id]);
-      profile = profileFromRow(result.rows[0], user);
+      profileRow = result.rows[0];
+      profile = profileFromRow(profileRow, user);
     } else {
-      profile = profileFromRow(db.localStore.master_profiles[user.id], user);
+      profileRow = db.localStore.master_profiles[user.id];
+      profile = profileFromRow(profileRow, user);
     }
 
     let cvs = await loadCvs(user.id);
     if (!cvs.length) cvs = [await createCv(user.id, { title: 'CV Utama', templateId: 'ats-executive', accentColor: '#2563EB', sectionOrder: defaultSections, isDefault: true })];
     let letters = await loadLetters(user.id);
     if (!letters.length) letters = [await createLetter(user.id)];
-    return res.json({ user, profile, cvs, letters });
+    return res.json({
+      user,
+      profile,
+      profileHasData: hasProfileData(profileRow),
+      profileHasPersonalData: hasPersonalData(profileRow),
+      cvs,
+      letters,
+    });
   } catch (error) {
     console.error('[Workspace Load Error]:', error);
     return res.status(500).json({ error: error.message || 'Gagal memuat workspace.' });
@@ -222,13 +289,15 @@ router.put('/workspace/profile', authenticateToken, async (req, res) => {
     const profile = profileFromRow(req.body, req.user);
     if (db.getDbStatus().postgresConnected) {
       await db.query(
-        `INSERT INTO master_profiles (user_id, personal_info, socials, summaries, experiences, projects, educations, skills, languages, custom_sections, achievements, career_objective, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+        `INSERT INTO master_profiles (user_id, personal_info, socials, summaries, experiences, projects, educations, skills, languages, custom_sections, achievements, career_objective, custom_sections_data, section_order, visible_sections, hidden_fields, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
          ON CONFLICT (user_id) DO UPDATE SET personal_info = EXCLUDED.personal_info, socials = EXCLUDED.socials,
          summaries = EXCLUDED.summaries, experiences = EXCLUDED.experiences, projects = EXCLUDED.projects,
          educations = EXCLUDED.educations, skills = EXCLUDED.skills, languages = EXCLUDED.languages,
          custom_sections = EXCLUDED.custom_sections, achievements = EXCLUDED.achievements,
-         career_objective = EXCLUDED.career_objective, updated_at = NOW()`,
+         career_objective = EXCLUDED.career_objective, custom_sections_data = EXCLUDED.custom_sections_data,
+         section_order = EXCLUDED.section_order, visible_sections = EXCLUDED.visible_sections,
+         hidden_fields = EXCLUDED.hidden_fields, updated_at = NOW()`,
         [req.user.id, ...profileColumns(profile)]
       );
     } else {
@@ -260,6 +329,7 @@ router.put('/workspace/cv/:id', authenticateToken, async (req, res) => {
         templateId: req.body.templateId,
         fontSize: req.body.fontSize || 'normal',
         showPhoto: req.body.showPhoto !== false,
+        visibleSections: req.body.visibleSections || defaultVisibleSections,
         hiddenSections: req.body.hiddenSections || [],
         activeSummaryId: req.body.activeSummaryId || 'sum-1',
         isDefault: Boolean(req.body.isDefault),
