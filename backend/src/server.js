@@ -5,33 +5,33 @@ import db from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import documentRoutes from './routes/document.routes.js';
-import aiRoutes from './routes/ai.routes.js';
 import workspaceRoutes from './routes/workspace.routes.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required to start the backend securely.');
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Dynamic CORS configuration for Vercel and local environments
-const allowedOrigins = [
+const allowedOrigins = new Set([
+  'https://prodil-studio.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : [])
-];
+]);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser tools, same-origin, or matching domains
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('prodil')) {
-      return callback(null, true);
-    }
-    // Permissive for prototypes
-    return callback(null, true);
+    const isVercelPreview = /^https:\/\/[a-z0-9-]+(?:-[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
+    return callback(null, allowedOrigins.has(origin) || isVercelPreview);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -52,7 +52,6 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     database: db.getDbStatus(),
-    geminiConfigured: !!process.env.GEMINI_API_KEY,
     smtpConfigured: !!process.env.SMTP_USER
   });
 });
@@ -66,7 +65,6 @@ app.get('/', (req, res) => {
       frontend: 'Vercel (React + Tailwind CSS)',
       backend: 'Hostinger VPS (Node.js + Express.js)',
       database: 'PostgreSQL + High-Speed Local Cache',
-      aiEngine: 'Google Gemini 2.5 Flash'
     },
     endpoints: {
       health: '/api/health',
@@ -75,7 +73,6 @@ app.get('/', (req, res) => {
         verifyEmail: 'POST /api/auth/verify-email',
         resendCode: 'POST /api/auth/resend-code',
         login: 'POST /api/auth/login',
-        google: 'POST /api/auth/google',
         me: 'GET /api/auth/me'
       },
       profile: {
@@ -88,12 +85,6 @@ app.get('/', (req, res) => {
         coverLetters: 'GET /api/documents/cover-letter',
         saveCoverLetter: 'POST /api/documents/cover-letter'
       },
-      ai: {
-        generateSummary: 'POST /api/ai/generate-summary',
-        optimizeBullets: 'POST /api/ai/optimize-bullets',
-        generateCoverLetter: 'POST /api/ai/generate-cover-letter',
-        smartImport: 'POST /api/ai/smart-import'
-      }
     }
   });
 });
@@ -102,7 +93,6 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/documents', documentRoutes);
-app.use('/api/ai', aiRoutes);
 app.use('/api', workspaceRoutes);
 
 // Global Error Handler

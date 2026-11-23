@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, FileDown, Layers, ShieldCheck, Sparkles, Upload, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileDown, Layers, ShieldCheck, X } from 'lucide-react';
 import type { TemplateCategory } from './TemplatesModal';
 import { CVTemplateThumbnail } from './TemplatesModal';
 import { johnSmithProfile } from '../data/initialProfile';
@@ -11,7 +11,6 @@ interface LandingPageProps {
   selectedTemplateId?: number;
   onSelectTemplate?: (templateId: number) => void;
   onStartEditing: (templateId?: number) => void;
-  onOpenSmartImport: () => void;
 }
 
 const categories: TemplateCategory[] = ['All (15)', 'ATS & Corporate', 'Creative & Photo', 'Dark & Modern', 'Minimal & No-Photo'];
@@ -27,7 +26,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   selectedTemplateId,
   onSelectTemplate,
   onStartEditing,
-  onOpenSmartImport,
 }) => {
   const { t, templateName, templateDescription, templateBadge, templateRole } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory>('All (15)');
@@ -67,8 +65,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8">
           <div className="text-center lg:text-left">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-800">
-              <Sparkles size={14} className="text-blue-600" />
-              <span>{t('heroBadge')}</span>
+              <ShieldCheck size={14} className="text-blue-600" />
+              <span>Prodil Studio v2.0 • 15 Template CV ATS</span>
             </div>
             <motion.h1
               initial={{ opacity: 0, y: 18 }}
@@ -79,7 +77,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {t('heroTitle')} <span className="text-blue-600">{t('heroAccent')}</span>
             </motion.h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0">
-              {t('heroSubtitle')}
+              Satu profil untuk CV ramah ATS, cover letter persuasif, dan Master Profile terstruktur. Daftar atau masuk akun untuk mulai menyusun dokumen Anda.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
               <button
@@ -88,13 +86,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition-colors hover:bg-blue-800 sm:w-auto"
               >
                 {t('start')} <ArrowRight size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={onOpenSmartImport}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 sm:w-auto"
-              >
-                <Upload size={16} className="text-blue-600" /> {t('smartImport')}
               </button>
             </div>
             <div className="mt-9 flex flex-wrap justify-center gap-x-6 gap-y-3 text-xs font-medium text-slate-500 lg:justify-start">
@@ -116,7 +107,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
                   <ShieldCheck size={12} /> {t('atsReady')}
                 </span>
-                <span className="text-[10px] font-semibold text-slate-500">{t('templateGallery').replace('(1–15)','')} #{heroTemplate.id}</span>
+                <span className="text-[10px] font-semibold text-slate-500">{t('templateGallery').replace('(1–15)', '')} #{heroTemplate.id}</span>
               </div>
               <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-md border border-slate-200 shadow-xl">
                 <CVTemplateThumbnail profile={johnSmithProfile} themeId={heroTemplate.id} />
@@ -150,7 +141,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: FileDown, title: t('vectorPdf'), text: t('vectorPdfText') },
-              { icon: Sparkles, title: t('aiAssistant'), text: t('aiAssistantText') },
+              { icon: CheckCircle2, title: t('atsChecklist'), text: t('catalogSubtitle') },
               { icon: Layers, title: t('masterProfileFeature'), text: t('masterProfileFeatureText') },
               { icon: ShieldCheck, title: t('secureManaged'), text: t('secureManagedText') },
             ].map(({ icon: Icon, title, text }) => (
@@ -226,6 +217,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           ))}
         </div>
       </section>
+
       <section className="bg-blue-600 py-16 text-center text-white">
         <div className="mx-auto max-w-4xl px-4">
           <h2 className="text-3xl font-extrabold tracking-tight">{t('closingTitle')}</h2>
@@ -239,6 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
         </div>
       </section>
+
       {previewTemplateId !== null && (
         <div
           className="no-print fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"

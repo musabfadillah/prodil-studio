@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, FileText, User as UserIcon, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
+import { FileText, User as UserIcon, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
 import { ProdilLogo } from './ProdilLogo';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,7 +10,6 @@ interface NavbarProps {
   setActiveView: (view: 'landing' | 'studio') => void;
   editorTab: 'profile' | 'cv' | 'cover-letter';
   setEditorTab: (tab: 'profile' | 'cv' | 'cover-letter') => void;
-  onOpenSmartImport: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,7 +17,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveView,
   editorTab,
   setEditorTab,
-  onOpenSmartImport,
 }) => {
   const { user, isAuthenticated, openAuthModal, logout } = useAuth();
   const { t } = useLanguage();
@@ -31,6 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Brand Logo */}
           <div className="flex items-center gap-6">
             <button
+              type="button"
               onClick={() => setActiveView('landing')}
               className="flex items-center gap-2.5 focus:outline-none group text-left"
             >
@@ -38,9 +37,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* In-Editor Navigation Tabs */}
-            {activeView === 'studio' && (
+            {activeView === 'studio' && isAuthenticated && (
               <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                 <button
+                  type="button"
                   onClick={() => setEditorTab('profile')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     editorTab === 'profile'
@@ -51,6 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {t('masterProfile')}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditorTab('cv')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     editorTab === 'cv'
@@ -61,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {t('cvBuilder')}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditorTab('cover-letter')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     editorTab === 'cover-letter'
@@ -78,26 +80,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             {activeView === 'landing' ? (
-              <>
-                <button
-                  onClick={() => {
-                    setActiveView('studio');
-                    setEditorTab('cv');
-                  }}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600"
-                >
-                  <FileText size={14} /> {t('templates')}
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveView('studio');
-                    onOpenSmartImport();
-                  }}
-                  className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600"
-                >
-                  <Sparkles size={14} className="text-amber-500" /> {t('smartImport')}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditorTab('cv');
+                  setActiveView('studio');
+                }}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600"
+              >
+                <FileText size={14} /> {t('templates')}
+              </button>
             ) : (
               <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -109,6 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
                 >
@@ -131,13 +124,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <p className="text-xs font-bold text-slate-900 truncate">{user.fullName}</p>
                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                       <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600 font-semibold">
-                        <ShieldCheck size={12} /> {t('emailVerifiedQuotaProtected')}
+                        <ShieldCheck size={12} /> {t('emailVerified')}
                       </div>
                     </div>
                     <button
+                      type="button"
                       onClick={() => {
-                        setActiveView('studio');
                         setEditorTab('profile');
+                        setActiveView('studio');
                         setDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
@@ -145,6 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <UserIcon size={14} /> {t('masterProfile')}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         logout();
                         setDropdownOpen(false);
@@ -159,15 +154,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => openAuthModal('login')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
                 >
                   {t('signIn')}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    setActiveView('studio');
                     setEditorTab('cv');
+                    setActiveView('studio');
                   }}
                   className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all"
                 >

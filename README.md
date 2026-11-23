@@ -7,14 +7,14 @@
 ## 📌 Ringkasan Proyek & Solusi Evolusi
 Aplikasi ini adalah evolusi dan perombakan arsitektur menyeluruh dari proyek sebelumnya (**Prodil CV Maker**). Berdasarkan hasil evaluasi mendalam dan referensi desain resmi Figma Prodil Studio, proyek ini dirancang dengan arsitektur **Hybrid Cloud**:
 - **Frontend UI (Vercel)**: React + TypeScript + Tailwind CSS (Deploy gratis, instan HTTPS tanpa perlu beli custom domain).
-- **Backend & Database (VPS Hostinger)**: Node.js + Express.js + PostgreSQL + Google Gemini 2.5 Flash API.
+- **Backend & Database (VPS Hostinger)**: Node.js + Express.js + PostgreSQL dengan autentikasi JWT.
 - **Brand Identity**: Logo resmi Prodil Studio (Ikon P gradient biru & tipografi modern) dipertahankan sesuai gambar lampiran.
 - **Fitur Dipertahankan & Ditingkatkan**:
   - ✅ **15 Template CV Lengkap**: Seluruh 15 tema dari `prodil-cv-maker` dipertahankan 100% dan disempurnakan.
   - ✅ **Perbaikan Kritis PDF ATS**: Menggantikan `html2canvas` (screenshot gambar buram & sering crash di smartphone) dengan **Pure Vector CSS `@media print`** (100% teks asli bisa di-blok/copy, ramah mesin ATS, dan stabil di Android/iOS).
   - ✅ **Master Profile (Single Source of Truth)**: Data diri diisi sekali, otomatis sinkron ke 15 template CV & Cover Letter.
-  - ✅ **Smart Import & Backup/Restore**: Import file lama (.pdf, .docx, .json) yang diekstrak otomatis oleh AI.
-  - ✅ **Autentikasi Aman & Proteksi Kuota AI**: Login Google OAuth & Email/Password dengan verifikasi email 6-digit untuk menjaga kuota Gemini API dari penyalahgunaan pihak anonim.
+  - ✅ **Backup/Restore Profil**: Ekspor dan impor cadangan profil berformat JSON.
+  - ✅ **Akun Wajib**: Workspace, profil, CV, dan cover letter hanya dapat digunakan setelah daftar/verifikasi email atau login.
 - **Fitur Dibuang Sesuai Permintaan**:
   - ❌ Halaman & fitur Shop/Pricing, Blog CMS, Artikel, dan About page terpisah ditiadakan agar aplikasi fokus, ramping, dan bebas bug.
 
@@ -38,7 +38,7 @@ Aplikasi ini adalah evolusi dan perombakan arsitektur menyeluruh dari proyek seb
 │  - Node.js + Express.js API (Port 5000)      │
 │  - PM2 Daemon (24/7 background uptime)       │
 │  - PostgreSQL Database (Users & Profiles)    │
-│  - Google Gemini 2.5 Flash AI Engine         │
+│  - JWT-authenticated REST API                │
 │  - Nodemailer (6-Digit Email Verification)   │
 │  - Nginx Reverse Proxy                       │
 └──────────────────────────────────────────────┘
@@ -57,8 +57,8 @@ PRODIL STUDIO PROJECT/
 │   │       └── prodil-icon.svg   # Ikon P Vektor
 │   ├── src/
 │   │   ├── components/           # LandingPage, StudioEditor, FormEditor, DocumentPreview,
-│   │   │                         # CoverLetterEditor, AuthModal, SmartImportModal, AtsScoreModal
-│   │   ├── context/              # AuthContext (JWT, Google Login, 6-Digit Verify)
+│   │   │                         # CoverLetterEditor, AuthModal, AtsScoreModal
+│   │   ├── context/              # AuthContext (JWT, email verification)
 │   │   ├── data/                 # initialProfile (Rich career data)
 │   │   ├── services/             # api.ts (HTTP Client terhubung ke VPS)
 │   │   ├── templates/            # 15 Template CV ATS + Cover Letter Template
@@ -75,8 +75,8 @@ PRODIL STUDIO PROJECT/
 │   ├── src/
 │   │   ├── config/               # db.js (PostgreSQL Pool + File Local Cache Fallback)
 │   │   ├── db/                   # migrate.js (SQL Schema generator)
-│   │   ├── middleware/           # auth.js (JWT verify), rateLimiter.js (Gemini protection)
-│   │   ├── routes/               # auth.routes.js, profile.routes.js, document.routes.js, ai.routes.js
+│   │   ├── middleware/           # auth.js (JWT verify), rateLimiter.js
+│   │   ├── routes/               # auth, profile, document, and workspace routes
 │   │   ├── utils/                # email.js (SMTP 6-digit verification codes)
 │   │   └── server.js             # Express App Entrypoint
 │   ├── .env.example
@@ -130,7 +130,7 @@ cd frontend
 npm install
 npm run dev
 ```
-*Frontend akan terbuka di `http://localhost:3000`.*
+*Frontend akan terbuka di `http://localhost:5173`.*
 
 ---
 
@@ -150,7 +150,7 @@ npm run dev
 4. Import repositori `prodil-studio`.
 5. Pada bagian **Root Directory**, klik **Edit** dan pilih: `frontend`.
 6. Di bagian **Environment Variables**, tambahkan:
-   - `VITE_API_URL` = `http://IP_VPS_HOSTINGER_ANDA:5000` (atau `https://api.domainkamu.com` jika sudah dipasangi domain/subdomain).
+   - `VITE_API_URL` = `https://api.domainkamu.com` (gunakan HTTPS untuk mencegah mixed content pada situs Vercel).
 7. Klik **Deploy**!
 8. Selesai! Web aplikasi Prodil Studio kamu langsung aktif dengan link gratis ber-HTTPS (misal: `https://prodil-studio.vercel.app`).
 
@@ -174,9 +174,8 @@ npm run dev
    PORT=5000
    NODE_ENV=production
    FRONTEND_URL=https://prodil-studio.vercel.app
-   JWT_SECRET=rahasia_jwt_prodil_studio_2026
+   JWT_SECRET=<buat-rahasia-acak-panjang>
    DATABASE_URL=postgres://prodil_user:ProdilSecurePass2026!@localhost:5432/prodil_studio
-   GEMINI_API_KEY=AIzaSy...your_gemini_api_key
    ```
 5. **Inisialisasi Tabel PostgreSQL**:
    ```bash

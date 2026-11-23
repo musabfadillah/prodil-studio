@@ -93,7 +93,7 @@ export const initialMasterProfile: MasterProfile = {
       client: "Prodil Brand",
       metrics: "50K+ Monthly Active Users",
       link: "https://prodil.studio",
-      description: "All-in-one career and personal document studio featuring 15 ATS resume templates, live vector PDF export, and Google Gemini AI Assistant."
+      description: "All-in-one career and personal document studio featuring 15 ATS resume templates and live vector PDF export."
     },
     {
       id: "proj-2",
@@ -107,7 +107,7 @@ export const initialMasterProfile: MasterProfile = {
   ],
   skills: [
     "React.js", "TypeScript", "Tailwind CSS", "Next.js", "Node.js", "Express.js",
-    "PostgreSQL", "UI/UX Design", "Figma", "REST APIs", "Git & CI/CD", "Gemini AI"
+    "PostgreSQL", "UI/UX Design", "Figma", "REST APIs", "Git & CI/CD"
   ],
   languages: [
     { name: "Indonesian", level: "Native" },

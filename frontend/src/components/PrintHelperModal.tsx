@@ -16,8 +16,20 @@ export const PrintHelperModal: React.FC<PrintHelperModalProps> = ({
   const { t } = useLanguage();
   if (!isOpen) return null;
 
+  const handleProceedPrint = () => {
+    onClose();
+    window.setTimeout(() => {
+      window.requestAnimationFrame(() => onProceedPrint());
+    }, 150);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+    <div
+      data-print-hide="true"
+      role="dialog"
+      aria-modal="true"
+      className="no-print modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -29,7 +41,11 @@ export const PrintHelperModal: React.FC<PrintHelperModalProps> = ({
               <p className="text-[11px] text-slate-500">{t('printSubtitle')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+          >
             <X size={18} />
           </button>
         </div>
@@ -85,16 +101,15 @@ export const PrintHelperModal: React.FC<PrintHelperModalProps> = ({
 
           <div className="pt-2 flex justify-end gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
               {t('cancel')}
             </button>
             <button
-              onClick={() => {
-                onClose();
-                onProceedPrint();
-              }}
+              type="button"
+              onClick={handleProceedPrint}
               className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md flex items-center gap-2"
             >
               <Printer size={14} /> {t('continuePrint')}

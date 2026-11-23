@@ -3,7 +3,6 @@ import { MasterProfile, CVDesignConfig, LegacySectionKey } from '../types/cv';
 import type { CustomSection, CustomSectionItem, CustomSectionLayout, SectionKey } from '../types/prodil';
 import { CV_TEMPLATES } from '../templates/TemplateRegistry';
 import {
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Plus,
@@ -22,9 +21,8 @@ import {
   MoveUp,
   MoveDown,
   X,
+  FileText,
 } from 'lucide-react';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { initialMasterProfile, johnSmithProfile } from '../data/initialProfile';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -36,7 +34,7 @@ const templateCategoryKey = (category: string) => ({
   Technical: 'templateCategoryTechnical',
 }[category] || 'templateCategories');
 
-const GeminiSwitch: React.FC<{
+const VisibilitySwitch: React.FC<{
   checked: boolean;
   onChange: () => void;
   label: string;
@@ -69,8 +67,6 @@ interface FormEditorProps {
   setProfile: React.Dispatch<React.SetStateAction<MasterProfile>>;
   config: CVDesignConfig;
   setConfig: React.Dispatch<React.SetStateAction<CVDesignConfig>>;
-  onOpenAiAssistant: (type: 'summary' | 'bullets', initialRole?: string, initialText?: string) => void;
-  onOpenSmartImport: () => void;
   onExportJson: () => void;
   onImportJsonFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
   focusedSection?: 'personal' | LegacySectionKey;
@@ -81,8 +77,6 @@ export const FormEditor: React.FC<FormEditorProps> = ({
   setProfile,
   config,
   setConfig,
-  onOpenAiAssistant,
-  onOpenSmartImport,
   onExportJson,
   onImportJsonFile,
   focusedSection,
@@ -99,12 +93,8 @@ export const FormEditor: React.FC<FormEditorProps> = ({
     achievements: false,
     certifications: false,
   });
-  const [targetJobDescription, setTargetJobDescription] = useState('');
   const [customSectionTitle, setCustomSectionTitle] = useState('');
   const [customSectionLayout, setCustomSectionLayout] = useState<CustomSectionLayout>('timeline');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiMessage, setAiMessage] = useState('');
-  const { isAuthenticated, openAuthModal } = useAuth();
 
   useEffect(() => {
     if (!focusedSection) return;
@@ -153,7 +143,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
     const visible = config.visibleSections?.[key as SectionKey] ?? !config.hiddenSections.includes(key);
     return (
       <span className="flex items-center gap-0.5">
-        <GeminiSwitch
+        <VisibilitySwitch
           checked={visible}
           onChange={() => setSectionVisibility(key)}
           label={visible ? t('hideSection') : t('showSection')}
@@ -190,61 +180,6 @@ export const FormEditor: React.FC<FormEditorProps> = ({
     updateCustomSection(sectionId, {
       items: section.items.map(item => item.id === itemId ? { ...item, ...update } : item),
     });
-  };
-
-  const handleOptimizeAll = async (tailor: boolean) => {
-    if (!isAuthenticated) {
-      openAuthModal('login');
-      setAiMessage(t('aiAuthRequired'));
-      return;
-    }
-    if (tailor && !targetJobDescription.trim()) {
-      setAiMessage(t('targetJobRequired'));
-      return;
-    }
-    setAiLoading(true);
-    setAiMessage('');
-    try {
-      const [summaryResult, ...experienceResults] = await Promise.all([
-        api.generateSummary({
-          role: profile.personal.headline,
-          keySkills: profile.skills.join(', '),
-          targetIndustry: targetJobDescription || 'General',
-        }),
-        ...profile.experiences.filter((experience) => experience.description?.trim()).map((experience) => api.optimizeBullets({
-          role: experience.role || profile.personal.headline,
-          rawBullets: experience.description || '',
-          jobDescription: targetJobDescription,
-        })),
-      ]);
-      if (!summaryResult.success || !summaryResult.data?.summaryIdText) {
-        throw new Error(summaryResult.message || t('aiSummaryFailed'));
-      }
-      const optimizedExperiences = experienceResults.map((result, index) => {
-        if (!result.success || !result.data?.formattedText) {
-          throw new Error(result.message || `${t('aiBulletsFailed')} #${index + 1}.`);
-        }
-        return result.data.formattedText;
-      });
-      setProfile(prev => ({
-        ...prev,
-        summaries: prev.summaries.length
-          ? prev.summaries.map((summary, index) => index === 0 ? { ...summary, text: summaryResult.data!.summaryIdText! } : summary)
-          : [{ id: `sum-${Date.now()}`, label: 'Gemini AI', text: summaryResult.data!.summaryIdText! }],
-        experiences: prev.experiences.map((experience) => {
-          if (!experience.description?.trim()) return experience;
-          const optimizedIndex = profile.experiences
-            .filter((item) => item.description?.trim())
-            .findIndex((item) => item.id === experience.id);
-          return { ...experience, description: optimizedExperiences[optimizedIndex] ?? experience.description };
-        }),
-      }));
-      setAiMessage(t(tailor ? 'cvTailoredSuccess' : 'cvOptimizedSuccess'));
-    } catch (error) {
-      setAiMessage(error instanceof Error ? error.message : t('aiSystemError'));
-    } finally {
-      setAiLoading(false);
-    }
   };
 
   const accentPalette = [
@@ -432,7 +367,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
 
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
           <span className="font-semibold text-slate-700">{t('showPhoto')}</span>
-          <GeminiSwitch
+          <VisibilitySwitch
             checked={config.showPhoto}
             onChange={() => setConfig(prev => ({ ...prev, showPhoto: !prev.showPhoto }))}
             label={t('showPhoto')}
@@ -444,6 +379,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
       <div className="bg-slate-100/80 p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={onExportJson}
             title="JSON"
             className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 font-semibold text-slate-700 flex items-center gap-1.5 shadow-xs"
@@ -455,16 +391,9 @@ export const FormEditor: React.FC<FormEditorProps> = ({
             <input type="file" accept=".json" onChange={onImportJsonFile} className="hidden" />
           </label>
         </div>
-
-        <button
-          onClick={onOpenSmartImport}
-          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white flex items-center gap-1.5 shadow-xs"
-        >
-          <Sparkles size={13} /> {t('smartImport')}
-        </button>
       </div>
 
-      {/* Sample profiles and Gemini assistant */}
+      {/* Sample profiles */}
       <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xs">
         <label className="mb-1.5 block text-[11px] font-bold text-slate-700">{t('sampleSwitcher')}</label>
         <select
@@ -488,35 +417,6 @@ export const FormEditor: React.FC<FormEditorProps> = ({
         </select>
       </div>
 
-      <div className={`relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-violet-50 p-4 shadow-sm ${aiLoading ? 'ai-shimmer' : ''}`}>
-        <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-500 text-white shadow-sm"><Sparkles size={17} /></div>
-          <div>
-            <h4 className="text-xs font-bold text-slate-900">{t('geminiTitle')}</h4>
-            <p className="text-[10px] text-slate-600">{t('geminiSubtitle')}</p>
-          </div>
-        </div>
-        <textarea
-          rows={3}
-          value={targetJobDescription}
-          onChange={(event) => setTargetJobDescription(event.target.value)}
-          placeholder={t('targetJobPlaceholder')}
-          className="mb-2.5 w-full resize-y rounded-xl border border-blue-100 bg-white/90 p-2.5 text-xs leading-relaxed focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-        />
-        {aiMessage && <p role="status" className="mb-2 text-[11px] text-slate-600">{aiMessage}</p>}
-        <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={aiLoading} onClick={() => handleOptimizeAll(false)} className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-60">
-            {aiLoading ? t('processing') : t('optimizeAll')}
-          </button>
-          <button type="button" disabled={aiLoading} onClick={() => handleOptimizeAll(true)} className="flex-1 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-60">
-            {t('tailorJob')}
-          </button>
-          <button type="button" onClick={() => onOpenAiAssistant('summary', profile.personal.headline)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-            {t('aiManual')}
-          </button>
-        </div>
-      </div>
-
       {/* SECTION: PERSONAL DETAILS */}
       <div id="editor-section-personal" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center gap-2 bg-slate-50 p-3">
@@ -529,7 +429,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
               const hidden = profile.hiddenFields?.[field] === true;
               const fieldLabel = field === 'photo' ? t('photo') : field === 'location' ? t('location') : field === 'website' ? t('website') : t('socialMedia');
               return (
-                <GeminiSwitch
+                <VisibilitySwitch
                   key={field}
                   checked={!hidden}
                   onChange={() => setProfile(prev => ({
@@ -635,7 +535,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
       <div id="editor-section-summary" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center gap-2 bg-slate-50 px-3 py-2">
           <button type="button" onClick={() => toggleSection('summary')} className="flex flex-1 items-center justify-between rounded-lg p-2 text-left hover:bg-slate-100">
-            <span className="font-bold text-xs text-slate-800 flex items-center gap-2"><Sparkles size={15} className="text-amber-500" /> {t('professionalSummary')}</span>
+            <span className="font-bold text-xs text-slate-800 flex items-center gap-2"><FileText size={15} className="text-blue-600" /> {t('professionalSummary')}</span>
             {openSections.summary ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>{renderSectionTools('summary')}
         </div>
@@ -644,13 +544,6 @@ export const FormEditor: React.FC<FormEditorProps> = ({
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-600">{t('summaryPlaceholder')}</span>
-              <button
-                type="button"
-                onClick={() => onOpenAiAssistant('summary', profile.personal.headline)}
-                className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-              >
-                <Sparkles size={12} /> {t('writeOrImproveWithAi')}
-              </button>
             </div>
             {profile.summaries.length > 1 && (
               <select value={profile.summaries.some(item => item.id === config.activeSummaryId) ? config.activeSummaryId : profile.summaries[0]?.id || ''} onChange={(event) => setConfig(prev => ({ ...prev, activeSummaryId: event.target.value }))} className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs">
@@ -697,22 +590,13 @@ export const FormEditor: React.FC<FormEditorProps> = ({
               <div key={exp.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-slate-800">#{idx + 1} {exp.role || 'Jabatan'}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onOpenAiAssistant('bullets', exp.role, exp.description)}
-                      className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                    >
-                      <Sparkles size={11} /> {t('aiOptimize')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeExperience(exp.id)}
-                      className="text-slate-400 hover:text-red-500 p-1"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeExperience(exp.id)}
+                    className="text-slate-400 hover:text-red-500 p-1"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -1032,7 +916,7 @@ export const FormEditor: React.FC<FormEditorProps> = ({
               <button type="button" onClick={() => toggleSection(section.id)} className="flex flex-1 items-center gap-2 text-left text-xs font-bold text-slate-800">
                 {openSections[section.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}{section.title} <span className="font-normal text-slate-400">({section.layoutType})</span>
               </button>
-              <GeminiSwitch
+              <VisibilitySwitch
                 checked={section.visible}
                 onChange={() => updateCustomSection(section.id, { visible: !section.visible })}
                 label={section.visible ? t('hideSection') : t('showSection')}

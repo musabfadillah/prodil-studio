@@ -6,8 +6,6 @@ import { DocumentPreview } from './DocumentPreview';
 import { CoverLetterEditor } from './CoverLetterEditor';
 import { AtsScoreModal } from './AtsScoreModal';
 import { PrintHelperModal } from './PrintHelperModal';
-import { SmartImportModal } from './SmartImportModal';
-import { AiAssistantModal } from './AiAssistantModal';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Share2, Check } from 'lucide-react';
@@ -19,8 +17,6 @@ interface StudioEditorProps {
   initialTemplateId?: number;
   onTemplateChange?: (templateId: number) => void;
   onBackToLanding: () => void;
-  smartImportOpen: boolean;
-  setSmartImportOpen: (open: boolean) => void;
 }
 
 export const StudioEditor: React.FC<StudioEditorProps> = ({
@@ -29,8 +25,6 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
   initialTemplateId,
   onTemplateChange,
   onBackToLanding,
-  smartImportOpen,
-  setSmartImportOpen,
 }) => {
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
@@ -107,18 +101,9 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     }
   }, [config.themeId, onTemplateChange]);
 
-  // Modal states
+  // Modal & UI states
   const [atsScoreModalOpen, setAtsScoreModalOpen] = useState(false);
   const [printHelperOpen, setPrintHelperOpen] = useState(false);
-  const [aiModalState, setAiModalState] = useState<{
-    isOpen: boolean;
-    type: 'summary' | 'bullets';
-    initialRole?: string;
-    initialText?: string;
-  }>({
-    isOpen: false,
-    type: 'summary',
-  });
   const [copiedLink, setCopiedLink] = useState(false);
   const [mobilePane, setMobilePane] = useState<'edit' | 'preview'>('edit');
   const [focusedSection, setFocusedSection] = useState<'personal' | LegacySectionKey>('personal');
@@ -266,7 +251,6 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
 
   // PDF Print Trigger
   const handleTriggerPrint = () => {
-    // Window.print gives vector selectable ATS text with zero canvas distortion!
     window.print();
   };
 
@@ -276,6 +260,7 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
       <div className="no-print glass-panel mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/80 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onBackToLanding}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors"
             title={t('backHome')}
@@ -291,18 +276,21 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
         {/* Tab switcher for mobile */}
         <div className="flex md:hidden items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
           <button
+            type="button"
             onClick={() => setEditorTab('profile')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'profile' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
             {t('masterProfile')}
           </button>
           <button
+            type="button"
             onClick={() => setEditorTab('cv')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'cv' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
             {t('jobStudio')}
           </button>
           <button
+            type="button"
             onClick={() => setEditorTab('cover-letter')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'cover-letter' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
@@ -317,6 +305,7 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
             {syncStatus === 'Synced to Cloud' ? t('syncedCloud') : t('savedLocal')}
           </span>
           <button
+            type="button"
             onClick={handleShareLink}
             className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
           >
@@ -352,10 +341,6 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
               config={config}
               setConfig={setConfig}
               focusedSection={focusedSection}
-              onOpenAiAssistant={(type, role, text) =>
-                setAiModalState({ isOpen: true, type, initialRole: role, initialText: text })
-              }
-              onOpenSmartImport={() => setSmartImportOpen(true)}
               onExportJson={handleExportJson}
               onImportJsonFile={handleImportJsonFile}
             />
@@ -376,22 +361,22 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
       )}
 
       <nav className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden" aria-label={t('workspaceNavigation')}>
-          <button
-            type="button"
-            onClick={() => setMobilePane('edit')}
-            aria-pressed={mobilePane === 'edit'}
-            className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'edit' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            📝 {t('editData')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobilePane('preview')}
-            aria-pressed={mobilePane === 'preview'}
-            className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'preview' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            👁 {t('livePreviewCv')}
-          </button>
+        <button
+          type="button"
+          onClick={() => setMobilePane('edit')}
+          aria-pressed={mobilePane === 'edit'}
+          className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'edit' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          📝 {t('editData')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobilePane('preview')}
+          aria-pressed={mobilePane === 'preview'}
+          className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'preview' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          👁 {t('livePreviewCv')}
+        </button>
       </nav>
 
       {/* Modals */}
@@ -405,41 +390,6 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
         isOpen={printHelperOpen}
         onClose={() => setPrintHelperOpen(false)}
         onProceedPrint={handleTriggerPrint}
-      />
-
-      <SmartImportModal
-        isOpen={smartImportOpen}
-        onClose={() => setSmartImportOpen(false)}
-        onProfileImported={(newProfile) => setProfile((previous) => ({
-          ...previous,
-          ...newProfile,
-          personal: { ...previous.personal, ...newProfile.personal },
-          summaries: newProfile.summaries || previous.summaries,
-          experiences: newProfile.experiences || previous.experiences,
-          educations: newProfile.educations || previous.educations,
-          projects: newProfile.projects || previous.projects,
-          skills: newProfile.skills || previous.skills,
-          languages: newProfile.languages || previous.languages,
-          achievements: newProfile.achievements || previous.achievements,
-        }))}
-      />
-
-      <AiAssistantModal
-        isOpen={aiModalState.isOpen}
-        onClose={() => setAiModalState(prev => ({ ...prev, isOpen: false }))}
-        type={aiModalState.type}
-        initialRole={aiModalState.initialRole}
-        initialText={aiModalState.initialText}
-        onApply={(text) => {
-          if (aiModalState.type === 'summary') {
-            setProfile(prev => {
-              const updated = [...prev.summaries];
-              if (updated[0]) updated[0].text = text;
-              else updated.push({ id: 'sum-1', label: 'AI Generated', text });
-              return { ...prev, summaries: updated };
-            });
-          }
-        }}
       />
     </div>
   );

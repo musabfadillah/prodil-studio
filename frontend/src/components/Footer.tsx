@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Server, Sparkles } from 'lucide-react';
+import { ShieldCheck, Server } from 'lucide-react';
 import { ProdilLogo } from './ProdilLogo';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -29,17 +29,16 @@ export const Footer: React.FC = () => {
               <li>{t('footerTemplate')}</li>
               <li>{t('footerLetter')}</li>
               <li>{t('footerMaster')}</li>
-              <li>{t('footerSmart')}</li>
+              <li>{t('footerJsonBackup')}</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">{t('techFeatures')}</h4>
+            <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">{t('workspaceFeatures')}</h4>
             <ul className="text-xs space-y-2 text-slate-400">
-              <li className="flex items-center gap-1.5"><Sparkles size={12} className="text-amber-400" /> {t('footerGemini')}</li>
               <li>{t('footerVector')}</li>
               <li>{t('footerSignIn')}</li>
-              <li>{t('footerQuota')}</li>
+              <li>{t('footerSecureData')}</li>
             </ul>
           </div>
         </div>

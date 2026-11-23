@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './components/LandingPage';
@@ -8,12 +8,39 @@ import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 
 export const AppContent: React.FC = () => {
+  const { user, isAuthenticated, isLoading, openAuthModal } = useAuth();
+
   const [activeView, setActiveView] = useState<'landing' | 'studio'>('landing');
   const [editorTab, setEditorTab] = useState<'profile' | 'cv' | 'cover-letter'>('cv');
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
-  const [smartImportOpen, setSmartImportOpen] = useState(false);
+  const [pendingStudioRequest, setPendingStudioRequest] = useState<{ templateId?: number } | null>(null);
 
-  const handleStartEditing = (templateId?: number) => {
+  const requireAccount = (onAuthenticated: () => void, templateId?: number) => {
+    if (isAuthenticated && user) {
+      onAuthenticated();
+      return;
+    }
+    setPendingStudioRequest({ templateId });
+    setActiveView('landing');
+    openAuthModal('login');
+  };
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && activeView === 'studio') {
+      setActiveView('landing');
+      openAuthModal('login');
+    }
+  }, [isAuthenticated, isLoading, activeView, openAuthModal]);
+
+  useEffect(() => {
+    if (isAuthenticated && pendingStudioRequest) {
+      const { templateId } = pendingStudioRequest;
+      setPendingStudioRequest(null);
+      applyTemplateAndOpenStudio(templateId);
+    }
+  }, [isAuthenticated, pendingStudioRequest]);
+
+  const applyTemplateAndOpenStudio = (templateId?: number) => {
     if (templateId) {
       setSelectedTemplateId(templateId);
       try {
@@ -29,29 +56,37 @@ export const AppContent: React.FC = () => {
     setActiveView('studio');
   };
 
+  const handleStartEditing = (templateId?: number) => {
+    requireAccount(() => applyTemplateAndOpenStudio(templateId), templateId);
+  };
+
+  const handleSelectView = (view: 'landing' | 'studio') => {
+    if (view === 'studio') {
+      requireAccount(() => setActiveView('studio'), selectedTemplateId);
+      return;
+    }
+    setActiveView('landing');
+  };
+
   return (
-    <div className={`min-h-screen flex flex-col bg-[#F4F7FC] bg-grid-slate text-slate-900 ${activeView === 'studio' ? 'pb-20 lg:pb-0' : ''}`}>
+    <div
+      className={`min-h-screen flex flex-col bg-[#F4F7FC] bg-grid-slate text-slate-900 ${
+        activeView === 'studio' && isAuthenticated ? 'pb-20 lg:pb-0' : ''
+      }`}
+    >
       <Navbar
-        activeView={activeView}
-        setActiveView={setActiveView}
+        activeView={activeView === 'studio' && !isAuthenticated ? 'landing' : activeView}
+        setActiveView={handleSelectView}
         editorTab={editorTab}
         setEditorTab={setEditorTab}
-        onOpenSmartImport={() => {
-          setActiveView('studio');
-          setSmartImportOpen(true);
-        }}
       />
 
       <main className="flex-1">
-        {activeView === 'landing' ? (
+        {activeView === 'landing' || !isAuthenticated || !user ? (
           <LandingPage
             selectedTemplateId={selectedTemplateId}
             onSelectTemplate={(id) => setSelectedTemplateId(id)}
             onStartEditing={handleStartEditing}
-            onOpenSmartImport={() => {
-              setActiveView('studio');
-              setSmartImportOpen(true);
-            }}
           />
         ) : (
           <StudioEditor
@@ -60,8 +95,6 @@ export const AppContent: React.FC = () => {
             initialTemplateId={selectedTemplateId}
             onTemplateChange={(id) => setSelectedTemplateId(id)}
             onBackToLanding={() => setActiveView('landing')}
-            smartImportOpen={smartImportOpen}
-            setSmartImportOpen={setSmartImportOpen}
           />
         )}
       </main>

@@ -1,6 +1,6 @@
 // ============================================================================
 // PRODIL STUDIO - UNIFIED MASTER DATA CONTRACT (SINGLE SOURCE OF TRUTH)
-// Menggabungkan kontrak 15 Template CV lama + Arsitektur Workspace AI Studio
+// Menggabungkan kontrak 15 Template CV lama + arsitektur workspace studio
 // ============================================================================
 
 export type TemplateId =
@@ -206,11 +206,4 @@ export interface CoverLetterConfig {
   subject?: string;
   bodyText: string;
   templateAccent: string;
-}
-
-export interface ATSAnalysisResult {
-  score: number;
-  matchedKeywords: string[];
-  missingKeywords: string[];
-  suggestions: string[];
 }

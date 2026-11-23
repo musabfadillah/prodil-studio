@@ -36,7 +36,7 @@ export async function sendVerificationEmail(toEmail, code, userName = 'Creator')
       <div style="padding: 20px; background-color: #f8fafc; border-radius: 8px; margin-bottom: 24px;">
         <h3 style="color: #1e293b; margin-top: 0;">Halo, ${userName}!</h3>
         <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-          Terima kasih telah bergabung di <strong>Prodil Studio</strong>. Masukkan kode 6-digit berikut untuk mengonfirmasi email dan mengaktifkan akses aman ke Studio & fitur AI:
+          Terima kasih telah bergabung di <strong>Prodil Studio</strong>. Masukkan kode 6-digit berikut untuk mengonfirmasi email dan mengaktifkan akses aman ke Studio:
         </p>
 
         <div style="text-align: center; margin: 30px 0;">

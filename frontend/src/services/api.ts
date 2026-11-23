@@ -2,7 +2,6 @@ import {
   MasterProfile as ProdilMasterProfile,
   CVDocumentConfig,
   CoverLetterConfig,
-  ATSAnalysisResult,
   SectionKey,
   TemplateId,
   CV_TEMPLATES as PRODIL_CV_TEMPLATES,
@@ -300,19 +299,6 @@ class ApiService {
     return data;
   }
 
-  async loginWithGoogle(payload: { email: string; name: string; picture?: string; googleId?: string }) {
-    const res = await fetch(`${API_BASE}/api/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data.token) {
-      this.setToken(data.token);
-    }
-    return data;
-  }
-
   async getMe() {
     if (!this.getToken()) return null;
     try {
@@ -410,133 +396,6 @@ class ApiService {
     return this.handleResponse<{ letter: CoverLetterConfig }>(res);
   }
 
-  // ==========================================================================
-  // 3. UNIFIED GEMINI AI SERVICES (ATS Scorer, Summary, Cover Letter, Smart Import)
-  // ==========================================================================
-
-  async aiGenerate<T = any>(
-    action: 'summary' | 'rewrite-bullets' | 'cover-letter' | 'ats-match',
-    payload: Record<string, any>
-  ) {
-    const languageCode = localStorage.getItem('prodil_lang') || 'id-ID';
-    const languageNames: Record<string, string> = {
-      'en-GB': 'English (UK)', 'en-US': 'English (US)', 'it-IT': 'Italian',
-      'de-DE': 'German', 'id-ID': 'Bahasa Indonesia',
-    };
-    const language = languageNames[languageCode] || 'Bahasa Indonesia';
-    const localizedPayload = { ...payload, language: payload.language || language };
-    const res = await fetch(`${API_BASE}/api/ai/generate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ action, payload: localizedPayload }),
-    });
-    return this.handleResponse<{ result: T }>(res);
-  }
-
-  async generateSummary(payload: {
-    role: string;
-    yearsOfExperience?: string;
-    keySkills?: string;
-    targetIndustry?: string;
-    tone?: string;
-  }): Promise<{
-    success: boolean;
-    data?: { summaryIdText?: string; summaryEn?: string };
-    message?: string;
-  }> {
-    const { result } = await this.aiGenerate<string>('summary', {
-      role: payload.role,
-      yearsOfExperience: payload.yearsOfExperience,
-      keySkills: payload.keySkills,
-      targetIndustry: payload.targetIndustry,
-      tone: payload.tone,
-      language: 'Bahasa Indonesia',
-    });
-    return { success: true, data: { summaryIdText: result, summaryEn: undefined } };
-  }
-
-  async optimizeBullets(payload: {
-    role: string;
-    rawBullets: string;
-    jobDescription?: string;
-  }): Promise<{
-    success: boolean;
-    data?: { optimizedBullets?: string[]; formattedText?: string };
-    message?: string;
-  }> {
-    const { result } = await this.aiGenerate<string[]>('rewrite-bullets', {
-      role: payload.role,
-      rawBullets: payload.rawBullets,
-      jobDescription: payload.jobDescription,
-    });
-    const bullets = Array.isArray(result) ? result : [];
-    return { success: true, data: { optimizedBullets: bullets, formattedText: bullets.join('\n') } };
-  }
-
-  async generateCoverLetter(payload: {
-    masterProfile: StudioMasterProfile;
-    recipientName?: string;
-    companyName: string;
-    jobTitle: string;
-    jobDescription?: string;
-    tone?: string;
-  }): Promise<{
-    success: boolean;
-    data?: { letterBody?: string; subject?: string };
-    message?: string;
-  }> {
-    const profile = payload.masterProfile;
-    const { result } = await this.aiGenerate<string>('cover-letter', {
-      fullName: profile.personal.fullName,
-      headline: profile.personal.headline,
-      targetRole: payload.jobTitle,
-      recipientName: payload.recipientName,
-      companyName: payload.companyName,
-      profileContext: `${profile.summaries[0]?.text || ''} | Skills: ${profile.skills.join(', ')} | Experience: ${profile.experiences.map((item) => `${item.role} at ${item.company}`).join(', ')}`,
-      jobDescription: payload.jobDescription,
-      language: payload.tone || 'Bahasa Indonesia',
-    });
-    return {
-      success: true,
-      data: { letterBody: result, subject: `Lamaran ${payload.jobTitle} - ${profile.personal.fullName}` },
-    };
-  }
-
-  async analyzeAtsMatch(payload: {
-    masterProfile: ProdilMasterProfile | StudioMasterProfile;
-    jobDescription: string;
-  }) {
-    return this.aiGenerate<ATSAnalysisResult>('ats-match', payload);
-  }
-
-  async smartImportFile(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const token = this.getToken();
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(`${API_BASE}/api/ai/smart-import`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-    const response = await this.handleResponse<{
-      success: boolean;
-      message?: string;
-      parsedProfile?: Partial<ProdilMasterProfile>;
-      data?: Partial<ProdilMasterProfile>;
-    }>(res);
-    const profile = response.parsedProfile || response.data;
-    return {
-      success: response.success,
-      message: response.message,
-      data: profile ? toStudioProfile(profile) : undefined,
-    };
-  }
 }
 
 export const api = new ApiService();

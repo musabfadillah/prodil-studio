@@ -22,7 +22,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message: string; requiresVerification?: boolean }>;
   register: (email: string, password: string, fullName: string) => Promise<{ success: boolean; message: string; previewCode?: string }>;
   verifyEmail: (code: string) => Promise<{ success: boolean; message: string }>;
-  loginWithGoogle: (mockAccount?: { name: string; email: string }) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
 
@@ -112,27 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (mockAccount?: { name: string; email: string }) => {
-    try {
-      // One-click Google sign in simulation or real token
-      const googleData = mockAccount || {
-        name: 'Alex Morgan (Google)',
-        email: 'alex.creator@gmail.com',
-        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-        googleId: 'google-oauth-10928374'
-      };
-      const res = await api.loginWithGoogle(googleData);
-      if (res.success && res.user) {
-        setUser(res.user);
-        setAuthModalOpen(false);
-        return { success: true, message: 'Berhasil login dengan Google!' };
-      }
-      return { success: false, message: res.message || 'Google Auth gagal' };
-    } catch (err: any) {
-      return { success: false, message: err.message || 'Gagal login dengan Google' };
-    }
-  };
-
   const logout = () => {
     api.setToken(null);
     setUser(null);
@@ -153,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         verifyEmail,
-        loginWithGoogle,
         logout,
       }}
     >

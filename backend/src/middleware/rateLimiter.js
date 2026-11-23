@@ -12,18 +12,6 @@ export const generalLimiter = rateLimit({
   }
 });
 
-// Stricter rate limiter for AI Gemini generation to protect quotas
-export const aiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 15, // max 15 requests per minute per user/IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Batas penggunaan AI tercapai (15 req/menit). Mohon tunggu sejenak sebelum mencoba lagi.'
-  }
-});
-
 // Auth endpoints rate limiter (prevent brute-force login/register)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

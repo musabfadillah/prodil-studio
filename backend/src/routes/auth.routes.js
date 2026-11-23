@@ -7,7 +7,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'prodil_studio_secret_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // Generate random 6 digit numeric code
@@ -344,84 +344,6 @@ router.post('/login', authLimiter, async (req, res) => {
   } catch (err) {
     console.error('[Login Error]:', err);
     res.status(500).json({ success: false, message: 'Gagal login: ' + err.message });
-  }
-});
-
-/**
- * POST /api/auth/google
- * Google One-Tap / OAuth Login & Register
- */
-router.post('/google', async (req, res) => {
-  try {
-    const { email, name, picture, googleId } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Data Google Account tidak valid.' });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-    let user = null;
-
-    if (db.getDbStatus().postgresConnected) {
-      const existing = await db.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
-      if (existing && existing.rows.length > 0) {
-        user = existing.rows[0];
-        // Ensure google_id and is_verified are updated
-        await db.query(
-          'UPDATE users SET google_id = COALESCE(google_id, $1), is_verified = TRUE, avatar_url = COALESCE(avatar_url, $2) WHERE id = $3',
-          [googleId || 'google-auth', picture || null, user.id]
-        );
-      } else {
-        // Create new user directly verified via Google
-        const insert = await db.query(
-          `INSERT INTO users (email, full_name, avatar_url, google_id, is_verified)
-           VALUES ($1, $2, $3, $4, TRUE) RETURNING *`,
-          [normalizedEmail, name || 'Google User', picture || null, googleId || 'google-auth']
-        );
-        user = insert.rows[0];
-      }
-    } else {
-      user = db.localStore.users.find(u => u.email === normalizedEmail);
-      if (user) {
-        user.is_verified = true;
-        if (picture) user.avatar_url = picture;
-        if (googleId) user.google_id = googleId;
-      } else {
-        user = {
-          id: db.localStore.users.length + 1,
-          email: normalizedEmail,
-          full_name: name || 'Google User',
-          avatar_url: picture || null,
-          google_id: googleId || 'google-auth',
-          is_verified: true,
-          created_at: new Date().toISOString()
-        };
-        db.localStore.users.push(user);
-      }
-      db.localStore.save();
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, full_name: user.full_name },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    res.json({
-      success: true,
-      message: 'Berhasil masuk dengan Google!',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        avatarUrl: user.avatar_url,
-        isVerified: true
-      }
-    });
-  } catch (err) {
-    console.error('[Google Auth Error]:', err);
-    res.status(500).json({ success: false, message: 'Gagal autentikasi Google: ' + err.message });
   }
 });
 

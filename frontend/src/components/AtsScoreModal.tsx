@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, ShieldCheck, Sparkles, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { MasterProfile } from '../types/cv';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -31,7 +31,7 @@ export const AtsScoreModal: React.FC<AtsScoreModalProps> = ({ isOpen, onClose, p
   if (hasSkills) score += 5;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+    <div role="dialog" aria-modal="true" className="no-print modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">

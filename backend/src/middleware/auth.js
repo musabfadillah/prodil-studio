@@ -4,7 +4,7 @@ import db from '../config/db.js';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prodil_studio_secret_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -17,48 +17,45 @@ export const authenticateToken = async (req, res, next) => {
     });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Check in PostgreSQL or local store
-    if (db.getDbStatus().postgresConnected) {
-      const result = await db.query('SELECT id, email, full_name, is_verified FROM users WHERE id = $1', [decoded.id]);
-      if (result && result.rows.length > 0) {
-        req.user = result.rows[0];
-        return next();
-      }
-    } else {
-      const user = db.localStore.users.find(u => u.id === decoded.id || u.email === decoded.email);
-      if (user) {
-        req.user = user;
-        return next();
-      }
-    }
-
-    // Default payload if user matched
-    req.user = decoded;
-    next();
-  } catch (err) {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
     return res.status(403).json({
       success: false,
       message: 'Token sesi telah kedaluwarsa atau tidak valid. Silakan login kembali.'
     });
   }
-};
 
-/**
- * Optional Auth middleware: if token present, decodes it, but doesn't reject guest users
- */
-export const optionalAuth = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (token) {
-    try {
-      req.user = jwt.verify(token, JWT_SECRET);
-    } catch {
-      req.user = null;
-    }
+  if (!decoded || typeof decoded !== 'object' || decoded.id == null) {
+    return res.status(401).json({ success: false, message: 'Token tidak memiliki akun yang valid.' });
   }
-  next();
+
+  try {
+    if (db.getDbStatus().postgresConnected) {
+      const result = await db.query('SELECT id, email, full_name, avatar_url, is_verified FROM users WHERE id = $1', [decoded.id]);
+      if (result && result.rows.length > 0) {
+        const user = result.rows[0];
+        if (!user.is_verified) {
+          return res.status(403).json({ success: false, message: 'Akun harus diverifikasi sebelum mengakses workspace.' });
+        }
+        req.user = user;
+      } else {
+        return res.status(401).json({ success: false, message: 'Akun tidak ditemukan. Silakan login kembali.' });
+      }
+    } else {
+      const user = db.localStore.users.find(u => String(u.id) === String(decoded.id));
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Akun tidak ditemukan. Silakan login kembali.' });
+      }
+      if (!user.is_verified) {
+        return res.status(403).json({ success: false, message: 'Akun harus diverifikasi sebelum mengakses workspace.' });
+      }
+      req.user = user;
+    }
+
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 };

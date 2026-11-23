@@ -1,6 +1,6 @@
 import express from 'express';
 import db from '../config/db.js';
-import { authenticateToken, optionalAuth } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -68,7 +68,7 @@ const defaultProfile = {
       client: "Prodil Brand",
       metrics: "50K+ Monthly Active Users",
       link: "https://prodil.studio",
-      description: "Comprehensive modern career & creative identity platform featuring 15 ATS resume templates, live PDF vector export, and Gemini AI assistant."
+      description: "Comprehensive modern career & creative identity platform featuring 15 ATS resume templates and live vector PDF export."
     },
     {
       id: "proj-2",
@@ -82,7 +82,7 @@ const defaultProfile = {
   ],
   skills: [
     "React.js", "TypeScript", "Tailwind CSS", "Node.js", "Express.js", 
-    "PostgreSQL", "Next.js", "UI/UX Design", "Figma", "Git & CI/CD", "Gemini API"
+    "PostgreSQL", "Next.js", "UI/UX Design", "Figma", "Git & CI/CD"
   ],
   languages: [
     { name: "Indonesian", level: "Native" },
@@ -96,17 +96,8 @@ const defaultProfile = {
 /**
  * GET /api/profile
  */
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    if (!req.user) {
-      // Guest demo profile
-      return res.json({
-        success: true,
-        isGuest: true,
-        data: defaultProfile
-      });
-    }
-
     const userId = req.user.id;
 
     if (db.getDbStatus().postgresConnected) {
