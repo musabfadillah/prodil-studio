@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import documentRoutes from './routes/document.routes.js';
 import aiRoutes from './routes/ai.routes.js';
+import workspaceRoutes from './routes/workspace.routes.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
@@ -102,6 +103,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api', workspaceRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

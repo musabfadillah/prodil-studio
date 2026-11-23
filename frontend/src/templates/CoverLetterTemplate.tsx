@@ -1,6 +1,7 @@
 import React from 'react';
 import { MasterProfile, CoverLetterData } from '../types/cv';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CoverLetterTemplateProps {
   profile: MasterProfile;
@@ -8,7 +9,15 @@ interface CoverLetterTemplateProps {
 }
 
 export const CoverLetterTemplate: React.FC<CoverLetterTemplateProps> = ({ profile, letterData }) => {
+  const { language } = useLanguage();
   const { personal } = profile;
+  const labels = language === 'id-ID'
+    ? { regards: 'Hormat saya', subject: 'Perihal' }
+    : language === 'it-IT'
+      ? { regards: 'Cordiali saluti', subject: 'Oggetto' }
+      : language === 'de-DE'
+        ? { regards: 'Mit freundlichen Grüßen', subject: 'Betreff' }
+        : { regards: 'Kind regards', subject: 'Subject' };
   const accent = letterData.accentColor || '#2563eb';
 
   return (
@@ -28,10 +37,10 @@ export const CoverLetterTemplate: React.FC<CoverLetterTemplateProps> = ({ profil
 
       {/* Date & Recipient Details */}
       <div className="mb-6 text-xs text-slate-600 space-y-1">
-        <div className="font-semibold text-slate-800">{letterData.date || new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        <div className="mt-4 font-bold text-slate-900 text-sm">{letterData.recipientName || 'Hiring Manager'}</div>
-        <div>{letterData.recipientTitle || 'Talent Acquisition Team'}</div>
-        <div className="font-semibold text-slate-800">{letterData.companyName || 'Target Company'}</div>
+        <div className="font-semibold text-slate-800">{letterData.date || new Date().toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        <div className="mt-4 font-bold text-slate-900 text-sm">{letterData.recipientName || ''}</div>
+        <div>{letterData.recipientTitle || ''}</div>
+        <div className="font-semibold text-slate-800">{letterData.companyName || ''}</div>
         {letterData.companyAddress && <div>{letterData.companyAddress}</div>}
       </div>
 
@@ -39,7 +48,7 @@ export const CoverLetterTemplate: React.FC<CoverLetterTemplateProps> = ({ profil
       {letterData.subject && (
         <div className="mb-6 pb-2 border-b border-slate-100">
           <p className="text-sm font-bold text-slate-900">
-            Subject: <span style={{ color: accent }}>{letterData.subject}</span>
+            {labels.subject}: <span style={{ color: accent }}>{letterData.subject}</span>
           </p>
         </div>
       )}
@@ -51,7 +60,7 @@ export const CoverLetterTemplate: React.FC<CoverLetterTemplateProps> = ({ profil
 
       {/* Sign-off */}
       <div className="mt-8 pt-4 border-t border-slate-100 text-xs">
-        <p className="text-slate-600">Hormat saya,</p>
+        <p className="text-slate-600">{labels.regards},</p>
         <div className="mt-8 font-bold text-slate-900 text-sm">{personal.fullName}</div>
         <div className="text-slate-500">{personal.headline}</div>
       </div>

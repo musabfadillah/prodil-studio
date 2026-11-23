@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MasterProfile, CVDesignConfig, CoverLetterData } from '../types/cv';
+import { MasterProfile, CVDesignConfig, CoverLetterData, LegacySectionKey } from '../types/cv';
 import { initialMasterProfile, initialCVDesignConfig, initialCoverLetterData } from '../data/initialProfile';
 import { FormEditor } from './FormEditor';
 import { DocumentPreview } from './DocumentPreview';
@@ -11,10 +11,13 @@ import { AiAssistantModal } from './AiAssistantModal';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Share2, Check } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface StudioEditorProps {
   editorTab: 'profile' | 'cv' | 'cover-letter';
   setEditorTab: (tab: 'profile' | 'cv' | 'cover-letter') => void;
+  initialTemplateId?: number;
+  onTemplateChange?: (templateId: number) => void;
   onBackToLanding: () => void;
   smartImportOpen: boolean;
   setSmartImportOpen: (open: boolean) => void;
@@ -23,17 +26,31 @@ interface StudioEditorProps {
 export const StudioEditor: React.FC<StudioEditorProps> = ({
   editorTab,
   setEditorTab,
+  initialTemplateId,
+  onTemplateChange,
   onBackToLanding,
   smartImportOpen,
   setSmartImportOpen,
 }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
+  const [cloudHydrated, setCloudHydrated] = useState(false);
 
   // Load from LocalStorage if available
   const [profile, setProfile] = useState<MasterProfile>(() => {
     try {
       const saved = localStorage.getItem('prodil_master_profile');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<MasterProfile>;
+        return {
+          ...initialMasterProfile,
+          ...parsed,
+          personal: { ...initialMasterProfile.personal, ...parsed.personal },
+          hiddenFields: parsed.hiddenFields || {},
+          visibleSections: { ...initialMasterProfile.visibleSections, ...parsed.visibleSections },
+          customSections: parsed.customSections || [],
+        };
+      }
     } catch (err) {
       console.warn('Could not read stored profile:', err);
     }
@@ -43,11 +60,22 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
   const [config, setConfig] = useState<CVDesignConfig>(() => {
     try {
       const saved = localStorage.getItem('prodil_cv_config');
-      if (saved) return JSON.parse(saved);
+      const parsed = saved ? (JSON.parse(saved) as Partial<CVDesignConfig>) : {};
+      return {
+        ...initialCVDesignConfig,
+        ...parsed,
+        themeId: initialTemplateId ?? parsed.themeId ?? initialCVDesignConfig.themeId,
+        visibleSections: { ...initialCVDesignConfig.visibleSections, ...parsed.visibleSections },
+        sectionOrder: parsed.sectionOrder || initialCVDesignConfig.sectionOrder,
+        hiddenSections: parsed.hiddenSections || [],
+      };
     } catch (err) {
       console.warn('Could not read stored config:', err);
     }
-    return initialCVDesignConfig;
+    return {
+      ...initialCVDesignConfig,
+      themeId: initialTemplateId ?? initialCVDesignConfig.themeId,
+    };
   });
 
   const [letterData, setLetterData] = useState<CoverLetterData>(() => {
@@ -59,6 +87,25 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     }
     return initialCoverLetterData;
   });
+
+  // Sync incoming template selection from LandingPage into active workspace config
+  useEffect(() => {
+    if (!initialTemplateId) return;
+    setConfig((previous) => {
+      if (previous.themeId === initialTemplateId) return previous;
+      return {
+        ...previous,
+        themeId: initialTemplateId,
+      };
+    });
+  }, [initialTemplateId]);
+
+  // Notify parent when user switches theme inside Studio
+  useEffect(() => {
+    if (config.themeId) {
+      onTemplateChange?.(config.themeId);
+    }
+  }, [config.themeId, onTemplateChange]);
 
   // Modal states
   const [atsScoreModalOpen, setAtsScoreModalOpen] = useState(false);
@@ -73,15 +120,19 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     type: 'summary',
   });
   const [copiedLink, setCopiedLink] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'edit' | 'preview'>('edit');
+  const [focusedSection, setFocusedSection] = useState<'personal' | LegacySectionKey>('personal');
+  const [syncStatus, setSyncStatus] = useState<'Saved locally' | 'Synced to Cloud'>('Saved locally');
 
   // Auto-save to LocalStorage on every change
   useEffect(() => {
     try {
       localStorage.setItem('prodil_master_profile', JSON.stringify(profile));
+      setSyncStatus(isAuthenticated ? 'Synced to Cloud' : 'Saved locally');
     } catch (err) {
       console.warn('LocalStorage save failed:', err);
     }
-  }, [profile]);
+  }, [profile, isAuthenticated]);
 
   useEffect(() => {
     try {
@@ -99,15 +150,81 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     }
   }, [letterData]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCloudHydrated(false);
+      return;
+    }
+
+    let active = true;
+    api.getWorkspace()
+      .then((workspace) => {
+        if (!active) return;
+        if (workspace.profile) {
+          const remote = api.toStudioProfile(workspace.profile);
+          setProfile((previous) => ({
+            ...previous,
+            ...remote,
+            personal: { ...previous.personal, ...remote.personal },
+            summaries: remote.summaries || previous.summaries,
+            experiences: remote.experiences || previous.experiences,
+            educations: remote.educations || previous.educations,
+            projects: remote.projects || previous.projects,
+            skills: remote.skills || previous.skills,
+            languages: remote.languages || previous.languages,
+            achievements: remote.achievements || previous.achievements,
+          }));
+        }
+        if (workspace.cvs?.[0]) {
+          const remoteCv = api.toStudioCv(workspace.cvs[0]);
+          setConfig((previous) => ({
+            ...remoteCv,
+            themeId: initialTemplateId ?? remoteCv.themeId ?? previous.themeId,
+          }));
+        }
+        if (workspace.letters?.[0]) setLetterData(api.toStudioLetter(workspace.letters[0]));
+        setCloudHydrated(true);
+      })
+      .catch((error) => {
+        console.error('[Workspace] Failed to load cloud data:', error);
+        if (active) setCloudHydrated(true);
+      });
+
+    return () => { active = false; };
+  }, [isAuthenticated, initialTemplateId]);
+
   // Sync to PostgreSQL backend when logged in (debounced)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && cloudHydrated) {
       const timer = setTimeout(() => {
-        api.saveMasterProfile(profile);
+        api.saveMasterProfile(profile).catch((error) => {
+          console.error('[Workspace] Failed to save master profile:', error);
+        });
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [profile, isAuthenticated]);
+  }, [profile, isAuthenticated, cloudHydrated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !cloudHydrated) return;
+    const timer = setTimeout(async () => {
+      try {
+        const cv = api.toProdilCv(config);
+        if (config.id !== undefined) {
+          await api.saveCv(config.id, { ...cv, id: config.id });
+        } else {
+          const created = await api.createCv(cv);
+          setConfig((previous) => ({ ...previous, id: created.cv.id }));
+        }
+        if (letterData.id !== undefined) {
+          await api.saveCoverLetter(letterData.id, api.toProdilLetter(letterData));
+        }
+      } catch (error) {
+        console.error('[Workspace] Failed to save CV or cover letter:', error);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [config, letterData, isAuthenticated, cloudHydrated]);
 
   // Export JSON backup
   const handleExportJson = () => {
@@ -130,10 +247,10 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           const parsed = JSON.parse(event.target?.result as string);
           if (parsed && parsed.personal) {
             setProfile(parsed);
-            alert('Data profil berhasil dipulihkan dari file JSON!');
+            alert(t('jsonRestored'));
           }
         } catch {
-          alert('Format file JSON tidak sesuai.');
+          alert(t('jsonInvalid'));
         }
       };
     }
@@ -154,20 +271,20 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="studio-container mx-auto w-full max-w-[1680px] px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-6">
       {/* Top Workspace Header */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+      <div className="no-print glass-panel mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/80 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToLanding}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors"
-            title="Kembali ke Beranda"
+            title={t('backHome')}
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900">Workspace Studio</h2>
-            <p className="text-xs text-slate-500">Master Profile &bull; 15 Template CV &bull; Live PDF Vector</p>
+            <h2 className="text-xl font-extrabold text-slate-900">{t('workspace')}</h2>
+            <p className="text-xs text-slate-500">{t('livePdf')}</p>
           </div>
         </div>
 
@@ -177,35 +294,39 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
             onClick={() => setEditorTab('profile')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'profile' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            Profile
+            {t('masterProfile')}
           </button>
           <button
             onClick={() => setEditorTab('cv')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'cv' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            CV
+            {t('jobStudio')}
           </button>
           <button
             onClick={() => setEditorTab('cover-letter')}
             className={`px-3 py-1.5 rounded-lg ${editorTab === 'cover-letter' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            Surat
+            {t('coverLetter')}
           </button>
         </div>
 
         {/* Share Link button */}
         <div className="flex items-center gap-2">
+          <span className={`hidden rounded-full border px-3 py-1.5 text-[11px] font-bold sm:inline-flex ${syncStatus === 'Synced to Cloud' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+            <span className={`mr-1.5 mt-1 h-1.5 w-1.5 rounded-full ${syncStatus === 'Synced to Cloud' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            {syncStatus === 'Synced to Cloud' ? t('syncedCloud') : t('savedLocal')}
+          </span>
           <button
             onClick={handleShareLink}
             className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
           >
             {copiedLink ? (
               <>
-                <Check size={14} className="text-emerald-500" /> Tersalin!
+                <Check size={14} className="text-emerald-500" /> {t('copied')}
               </>
             ) : (
               <>
-                <Share2 size={14} /> Bagikan Link
+                <Share2 size={14} /> {t('shareLink')}
               </>
             )}
           </button>
@@ -219,16 +340,18 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           letterData={letterData}
           setLetterData={setLetterData}
           onTriggerPrint={() => setPrintHelperOpen(true)}
+          mobilePane={mobilePane}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="studio-grid grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           {/* Left Panel: Form Input Editor */}
-          <div className="no-print lg:col-span-5 h-[calc(100vh-140px)] overflow-y-auto pr-1">
+          <div className={`no-print min-w-0 lg:col-span-5 ${mobilePane === 'preview' ? 'hidden lg:block' : ''}`}>
             <FormEditor
               profile={profile}
               setProfile={setProfile}
               config={config}
               setConfig={setConfig}
+              focusedSection={focusedSection}
               onOpenAiAssistant={(type, role, text) =>
                 setAiModalState({ isOpen: true, type, initialRole: role, initialText: text })
               }
@@ -239,16 +362,37 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           </div>
 
           {/* Right Panel: Live Document Preview */}
-          <div className="lg:col-span-7 h-[calc(100vh-140px)]">
+          <div className={`min-w-0 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}>
             <DocumentPreview
               profile={profile}
               config={config}
+              setConfig={setConfig}
+              onSectionFocus={setFocusedSection}
               onOpenAtsScore={() => setAtsScoreModalOpen(true)}
               onTriggerPrint={() => setPrintHelperOpen(true)}
             />
           </div>
         </div>
       )}
+
+      <nav className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden" aria-label={t('workspaceNavigation')}>
+          <button
+            type="button"
+            onClick={() => setMobilePane('edit')}
+            aria-pressed={mobilePane === 'edit'}
+            className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'edit' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            📝 {t('editData')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane('preview')}
+            aria-pressed={mobilePane === 'preview'}
+            className={`rounded-xl px-3 py-3 text-xs font-bold transition-colors ${mobilePane === 'preview' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            👁 {t('livePreviewCv')}
+          </button>
+      </nav>
 
       {/* Modals */}
       <AtsScoreModal
@@ -266,7 +410,18 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
       <SmartImportModal
         isOpen={smartImportOpen}
         onClose={() => setSmartImportOpen(false)}
-        onProfileImported={(newProfile) => setProfile(newProfile)}
+        onProfileImported={(newProfile) => setProfile((previous) => ({
+          ...previous,
+          ...newProfile,
+          personal: { ...previous.personal, ...newProfile.personal },
+          summaries: newProfile.summaries || previous.summaries,
+          experiences: newProfile.experiences || previous.experiences,
+          educations: newProfile.educations || previous.educations,
+          projects: newProfile.projects || previous.projects,
+          skills: newProfile.skills || previous.skills,
+          languages: newProfile.languages || previous.languages,
+          achievements: newProfile.achievements || previous.achievements,
+        }))}
       />
 
       <AiAssistantModal

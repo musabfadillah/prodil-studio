@@ -1,6 +1,20 @@
 import { MasterProfile, CVDesignConfig, CoverLetterData } from '../types/cv';
 
 export const initialMasterProfile: MasterProfile = {
+  hiddenFields: {},
+  sectionOrder: ["summary", "experience", "projects", "education", "skills", "achievements", "objective", "languages", "certifications"],
+  visibleSections: {
+    summary: true,
+    experience: true,
+    projects: true,
+    education: true,
+    skills: true,
+    achievements: true,
+    objective: true,
+    languages: true,
+    certifications: true,
+  },
+  customSections: [],
   personal: {
     fullName: "Alex Morgan",
     headline: "Product Designer & Senior Frontend Developer",
@@ -105,15 +119,60 @@ export const initialMasterProfile: MasterProfile = {
   ]
 };
 
+export const johnSmithProfile: MasterProfile = {
+  ...initialMasterProfile,
+  personal: {
+    ...initialMasterProfile.personal,
+    fullName: 'John Smith',
+    headline: 'Food & Beverage Professional',
+    email: 'john.smith@email.com',
+    phone: '+1 (415) 555-0138',
+    location: 'San Francisco, CA',
+    website: 'johnsmith.com',
+    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+    socials: [
+      { platform: 'LinkedIn', url: 'linkedin.com/in/johnsmith' },
+    ],
+  },
+  summaries: [{
+    id: 'john-summary',
+    label: 'Product Leadership',
+    text: 'Food and beverage professional with 8+ years of experience leading restaurant operations, menu development, guest experience, and high-performing service teams. Known for consistent quality, cost control, and delivering measurable revenue growth across premium hospitality concepts.',
+  }],
+  experiences: initialMasterProfile.experiences.map((item, index) => ({
+    ...item,
+    id: `john-exp-${index + 1}`,
+    role: ['Executive Chef', 'Restaurant Operations Manager', 'Food & Beverage Supervisor'][index] || item.role,
+    company: ['The Golden Table', 'Azure Hospitality Group', 'Harbor & Vine'][index] || item.company,
+    location: ['San Francisco, CA', 'Oakland, CA', 'San Francisco, CA'][index] || item.location,
+    description: [
+      '• Directed a 42-person culinary operation, improving guest satisfaction scores by 18% and maintaining target food cost below 28%.',
+      '• Led multi-site restaurant operations across service, procurement, training, and quality control; increased repeat bookings by 24%.',
+      '• Supervised floor and bar service for premium dining events and built standard operating procedures for new hires.',
+    ][index] || item.description,
+  })),
+};
+
 export const initialCVDesignConfig: CVDesignConfig = {
   themeId: 1,
-  accentColor: "#2563eb", // Prodil Blue
+  accentColor: "",
   fontFamily: "Plus Jakarta Sans",
   showPhoto: true,
   fontSize: "normal",
   activeSummaryId: "sum-main",
-  sectionOrder: ["summary", "experience", "projects", "education", "skills", "languages", "certifications"],
-  hiddenSections: []
+  sectionOrder: ["summary", "experience", "projects", "education", "skills", "achievements", "objective", "languages", "certifications"],
+  hiddenSections: [],
+  visibleSections: {
+    summary: true,
+    experience: true,
+    projects: true,
+    education: true,
+    skills: true,
+    achievements: true,
+    objective: true,
+    languages: true,
+    certifications: true,
+  }
 };
 
 export const initialCoverLetterData: CoverLetterData = {

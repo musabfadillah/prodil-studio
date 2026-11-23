@@ -1,6 +1,9 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, FileText, CheckCircle2, User as UserIcon, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Sparkles, FileText, User as UserIcon, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
+import { ProdilLogo } from './ProdilLogo';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
   activeView: 'landing' | 'studio';
@@ -18,10 +21,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSmartImport,
 }) => {
   const { user, isAuthenticated, openAuthModal, logout } = useAuth();
+  const { t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
   return (
-    <nav className="no-print sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
+    <nav className="no-print sticky top-0 z-40 border-b border-white/60 bg-white/75 backdrop-blur-md shadow-[0_8px_30px_-24px_rgba(6,17,60,.35)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
@@ -30,24 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveView('landing')}
               className="flex items-center gap-2.5 focus:outline-none group text-left"
             >
-              <img
-                src="/assets/prodil-logo.jpg"
-                alt="Prodil Studio"
-                className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-                onError={(e) => {
-                  // Fallback to SVG if image not found
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-              <div className="flex flex-col">
-                <span className="font-extrabold text-xl tracking-tight text-slate-950 flex items-center gap-1.5">
-                  Prodil Studio
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">v2.0</span>
-                </span>
-                <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-                  Craft Your Career & Creative Identity
-                </span>
-              </div>
+              <ProdilLogo />
             </button>
 
             {/* In-Editor Navigation Tabs */}
@@ -61,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Master Profile
+                  {t('masterProfile')}
                 </button>
                 <button
                   onClick={() => setEditorTab('cv')}
@@ -71,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  CV Builder (15 Templates)
+                  {t('cvBuilder')}
                 </button>
                 <button
                   onClick={() => setEditorTab('cover-letter')}
@@ -81,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Cover Letter
+                  {t('coverLetter')}
                 </button>
               </div>
             )}
@@ -89,6 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Navigation & User Actions */}
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             {activeView === 'landing' ? (
               <>
                 <button
@@ -98,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600"
                 >
-                  <FileText size={14} /> 15 Templates
+                  <FileText size={14} /> {t('templates')}
                 </button>
                 <button
                   onClick={() => {
@@ -107,13 +95,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600"
                 >
-                  <Sparkles size={14} className="text-amber-500" /> Smart Import AI
+                  <Sparkles size={14} className="text-amber-500" /> {t('smartImport')}
                 </button>
               </>
             ) : (
               <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Auto-saved to Cloud</span>
+                <span>{t('autoSaved')}</span>
               </div>
             )}
 
@@ -143,7 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <p className="text-xs font-bold text-slate-900 truncate">{user.fullName}</p>
                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                       <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600 font-semibold">
-                        <ShieldCheck size={12} /> Email Verified &bull; Gemini Quota Protected
+                        <ShieldCheck size={12} /> {t('emailVerifiedQuotaProtected')}
                       </div>
                     </div>
                     <button
@@ -154,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                     >
-                      <UserIcon size={14} /> Master Profile
+                      <UserIcon size={14} /> {t('masterProfile')}
                     </button>
                     <button
                       onClick={() => {
@@ -163,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
-                      <LogOut size={14} /> Keluar (Sign Out)
+                      <LogOut size={14} /> {t('signOut')}
                     </button>
                   </div>
                 )}
@@ -174,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => openAuthModal('login')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
                 >
-                  Masuk
+                  {t('signIn')}
                 </button>
                 <button
                   onClick={() => {
@@ -183,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all"
                 >
-                  Buka Studio
+                  {t('openStudio')}
                 </button>
               </div>
             )}

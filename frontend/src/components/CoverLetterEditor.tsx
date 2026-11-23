@@ -4,12 +4,14 @@ import { CoverLetterTemplate } from '../templates/CoverLetterTemplate';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, Printer, Download, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CoverLetterEditorProps {
   profile: MasterProfile;
   letterData: CoverLetterData;
   setLetterData: React.Dispatch<React.SetStateAction<CoverLetterData>>;
   onTriggerPrint: () => void;
+  mobilePane: 'edit' | 'preview';
 }
 
 export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
@@ -17,7 +19,9 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
   letterData,
   setLetterData,
   onTriggerPrint,
+  mobilePane,
 }) => {
+  const { t } = useLanguage();
   const { isAuthenticated, openAuthModal } = useAuth();
   const [loadingAi, setLoadingAi] = useState(false);
   const [jobDescription, setJobDescription] = useState('');
@@ -30,13 +34,13 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
 
   const handleGenerateAiCoverLetter = async () => {
     if (!isAuthenticated) {
-      setErrorMsg('Masuk ke akun kamu untuk menggunakan fitur AI Cover Letter.');
+      setErrorMsg(t('coverAuthRequired'));
       openAuthModal('login');
       return;
     }
 
     if (!letterData.companyName || !letterData.jobTitle) {
-      setErrorMsg('Nama Perusahaan dan Posisi Tujuan wajib diisi sebelum membuat surat.');
+      setErrorMsg(t('coverRequiredFields'));
       return;
     }
 
@@ -56,18 +60,18 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
       if (res.success && res.data) {
         setLetterData(prev => ({
           ...prev,
-          letterBody: res.data.letterBody || prev.letterBody,
-          subject: res.data.subject || prev.subject,
+          letterBody: res.data?.letterBody || prev.letterBody,
+          subject: res.data?.subject || prev.subject,
         }));
-        setSuccessMsg('Surat lamaran berhasil dibuat dengan Gemini AI!');
+        setSuccessMsg(t('coverGenerated'));
       } else {
-        setErrorMsg(res.message || 'Gagal membuat cover letter.');
+        setErrorMsg(res.message || t('coverGenerateFailed'));
       }
     } catch (err: any) {
       if (err.message === 'AUTH_REQUIRED') {
         openAuthModal('login');
       } else {
-        setErrorMsg(err.message || 'Terjadi kesalahan sistem.');
+        setErrorMsg(err.message || t('systemError'));
       }
     } finally {
       setLoadingAi(false);
@@ -75,16 +79,17 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full items-start">
+    <div className="studio-grid grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
       {/* Left Form Settings */}
-      <div className="no-print lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className={`no-print min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-5 ${mobilePane === 'preview' ? 'hidden lg:block' : ''}`}>
+        <div className="space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
-            <h3 className="font-bold text-sm text-slate-900">Cover Letter Generator</h3>
-            <p className="text-[11px] text-slate-500">Sesuaikan surat lamaran dengan target lowongan</p>
+            <h3 className="font-bold text-sm text-slate-900">{t('coverGeneratorTitle')}</h3>
+            <p className="text-[11px] text-slate-500">{t('coverSubtitle')}</p>
           </div>
           <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-            Single Source of Truth
+            {t('singleSource')}
           </span>
         </div>
 
@@ -105,21 +110,21 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
         {/* AI Generator Box */}
         <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 space-y-2.5">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-            <Sparkles size={14} className="text-amber-500" /> Draf Otomatis dengan Gemini AI
+            <Sparkles size={14} className="text-amber-500" /> {t('coverAiDraft')}
           </div>
           <p className="text-[11px] text-slate-600 leading-normal">
-            AI akan menggabungkan keahlian dari Master Profile kamu dengan kebutuhan spesifik lowongan.
+            {t('aiCoverText')}
           </p>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-              Job Description / Persyaratan Lowongan
+              {t('jobDescriptionLabel')}
             </label>
             <textarea
               rows={2}
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Tempel kriteria lowongan pekerjaan..."
+              placeholder={t('targetJobPlaceholder')}
               className="w-full p-2 text-xs border border-slate-300 rounded-lg bg-white"
             />
           </div>
@@ -133,11 +138,11 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
             {loadingAi ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Gemini AI sedang menulis surat...
+                {t('writingCover')}
               </>
             ) : (
               <>
-                <Sparkles size={13} /> Tulis Surat dengan AI
+                <Sparkles size={13} /> {t('writeCover')}
               </>
             )}
           </button>
@@ -146,22 +151,22 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
         {/* Manual Inputs */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Perusahaan Tujuan</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('companyTarget')}</label>
             <input
               type="text"
               value={letterData.companyName}
               onChange={(e) => handleChange('companyName', e.target.value)}
-              placeholder="e.g. Google Indonesia"
+              placeholder={t('companyExample')}
               className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Posisi Dilamar</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('targetPosition')}</label>
             <input
               type="text"
               value={letterData.jobTitle}
               onChange={(e) => handleChange('jobTitle', e.target.value)}
-              placeholder="e.g. Senior Frontend Specialist"
+              placeholder={t('positionExample')}
               className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg"
             />
           </div>
@@ -169,29 +174,29 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nama Penerima</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('recipientName')}</label>
             <input
               type="text"
               value={letterData.recipientName}
               onChange={(e) => handleChange('recipientName', e.target.value)}
-              placeholder="e.g. Hiring Team / Ibu Sarah"
+              placeholder={t('recipientExample')}
               className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Jabatan Penerima</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('recipientTitle')}</label>
             <input
               type="text"
               value={letterData.recipientTitle}
               onChange={(e) => handleChange('recipientTitle', e.target.value)}
-              placeholder="e.g. Talent Acquisition Lead"
+              placeholder={t('recipientTitleExample')}
               className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Subject Email / Surat</label>
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('subjectLabel')}</label>
           <input
             type="text"
             value={letterData.subject}
@@ -201,7 +206,7 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Isi Lengkap Surat Lamaran</label>
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t('bodyLabel')}</label>
           <textarea
             rows={10}
             value={letterData.letterBody}
@@ -210,20 +215,21 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
           />
         </div>
       </div>
+      </div>
 
       {/* Right Live Preview */}
-      <div className="lg:col-span-7 bg-slate-200/70 p-4 sm:p-6 rounded-2xl border border-slate-300 overflow-auto">
+      <div className={`min-w-0 rounded-2xl border border-slate-300 bg-slate-200/70 p-4 sm:p-6 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}>
         <div className="no-print flex justify-between items-center mb-4">
-          <span className="text-xs font-bold text-slate-700">Live Preview Dokumen (A4)</span>
+          <span className="text-xs font-bold text-slate-700">{t('livePreview')}</span>
           <button
             onClick={onTriggerPrint}
             className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
           >
-            <Download size={14} /> Download PDF Surat
+            <Download size={14} /> {t('downloadCover')}
           </button>
         </div>
 
-        <div className="printable-document bg-white rounded-lg shadow-sheet overflow-hidden border border-slate-300 max-w-[210mm] mx-auto min-h-[297mm]">
+        <div className="printable-document mx-auto min-h-[297mm] w-full max-w-[210mm] border border-slate-300 bg-white shadow-sheet">
           <CoverLetterTemplate profile={profile} letterData={letterData} />
         </div>
       </div>

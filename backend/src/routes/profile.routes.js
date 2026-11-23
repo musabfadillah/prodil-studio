@@ -16,8 +16,7 @@ const defaultProfile = {
     photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
     socials: [
       { platform: "LinkedIn", url: "https://linkedin.com/in/alexmorgan" },
-      { platform: "GitHub", url: "https://github.com/alexmorgan" },
-      { platform: "Portfolio", url: "https://alexmorgan.dev" }
+      { platform: "GitHub", url: "https://github.com/alexmorgan" }
     ]
   },
   summaries: [

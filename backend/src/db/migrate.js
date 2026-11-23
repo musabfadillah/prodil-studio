@@ -43,8 +43,13 @@ CREATE TABLE IF NOT EXISTS master_profiles (
     skills JSONB DEFAULT '[]',
     languages JSONB DEFAULT '[]',
     custom_sections JSONB DEFAULT '[]',
+    achievements JSONB DEFAULT '[]',
+    career_objective TEXT DEFAULT '',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '[]';
+ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS career_objective TEXT DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS cv_documents (
     id VARCHAR(64) PRIMARY KEY,
@@ -74,6 +79,10 @@ CREATE TABLE IF NOT EXISTS cover_letters (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE cover_letters ADD COLUMN IF NOT EXISTS company_address TEXT DEFAULT '';
+ALTER TABLE cover_letters ADD COLUMN IF NOT EXISTS letter_date VARCHAR(128) DEFAULT '';
+ALTER TABLE cover_letters ADD COLUMN IF NOT EXISTS subject VARCHAR(255) DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS ai_usage_logs (
     id SERIAL PRIMARY KEY,

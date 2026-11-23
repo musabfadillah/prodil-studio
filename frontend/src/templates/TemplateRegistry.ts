@@ -5,21 +5,21 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     id: 1,
     name: "ATS Classic Professional",
     category: "ATS Clean",
-    description: "Format standar internasional 100% ramah ATS scanner. Struktur linear satu kolom dengan pembagi horizontal klasik.",
-    hasPhoto: false,
+    description: "Format ATS satu kolom dengan foto bulat, nama uppercase, dan kontak rata kanan.",
+    hasPhoto: true,
     badge: "100% ATS Ready",
     recommendedRole: "Semua Posisi, Fresh Graduate, BUMN, Multi-Nasional",
-    previewColor: "#1e293b"
+    previewColor: "#111827"
   },
   {
     id: 2,
     name: "ATS Executive Clean",
     category: "Executive",
-    description: "Header eksekutif elegan dengan informasi kontak tersusun rapi dalam bar horizontal bergaris pembatas.",
-    hasPhoto: false,
+    description: "Header eksekutif dengan aksen vertikal tebal dan informasi kontak dalam bar horizontal.",
+    hasPhoto: true,
     badge: "Corporate Choice",
     recommendedRole: "Manager, Director, Project Lead, Consultant",
-    previewColor: "#2563eb"
+    previewColor: "#0f172a"
   },
   {
     id: 3,
@@ -29,7 +29,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: false,
     badge: "Strict ATS",
     recommendedRole: "Legal, Finance, Accounting, Banking, Corporate",
-    previewColor: "#334155"
+    previewColor: "#172554"
   },
   {
     id: 4,
@@ -39,7 +39,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Modern Minimal",
     recommendedRole: "Marketing, Operations, HR, Sustainability, Startup",
-    previewColor: "#059669"
+    previewColor: "#047857"
   },
   {
     id: 5,
@@ -49,7 +49,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: false,
     badge: "Academic & Legal",
     recommendedRole: "Akademisi, Peneliti, Pengacara, Tenaga Medis, BUMN",
-    previewColor: "#78350f"
+    previewColor: "#9f1239"
   },
   {
     id: 6,
@@ -59,7 +59,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Warm Accent",
     recommendedRole: "Hospitality, F&B, Hotelier, Customer Success, PR",
-    previewColor: "#d97706"
+    previewColor: "#78350f"
   },
   {
     id: 7,
@@ -69,7 +69,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Luxury Edition",
     recommendedRole: "Executive Chef, Brand Ambassador, Luxury Retail, Senior Lead",
-    previewColor: "#b48c36"
+    previewColor: "#b45309"
   },
   {
     id: 8,
@@ -79,7 +79,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Best Seller",
     recommendedRole: "Software Engineer, UI/UX Designer, Digital Marketer",
-    previewColor: "#0f172a"
+    previewColor: "#fbbf24"
   },
   {
     id: 9,
@@ -89,7 +89,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Creative Pro",
     recommendedRole: "Graphic Designer, Content Creator, Video Editor, Copywriter",
-    previewColor: "#6366f1"
+    previewColor: "#38bdf8"
   },
   {
     id: 10,
@@ -99,7 +99,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: false,
     badge: "Editorial Clean",
     recommendedRole: "Journalist, Writer, Content Strategist, Communications",
-    previewColor: "#065f46"
+    previewColor: "#0f766e"
   },
   {
     id: 11,
@@ -109,7 +109,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Unique Split",
     recommendedRole: "Product Manager, Tech Consultant, Business Development",
-    previewColor: "#1d4ed8"
+    previewColor: "#172554"
   },
   {
     id: 12,
@@ -119,7 +119,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: false,
     badge: "Bold Statement",
     recommendedRole: "Architect, Industrial Designer, Creative Director, Art Lead",
-    previewColor: "#18181b"
+    previewColor: "#fbbf24"
   },
   {
     id: 13,
@@ -139,7 +139,7 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: false,
     badge: "Dev Favorite",
     recommendedRole: "Full-Stack Dev, DevOps Engineer, Backend Engineer, Cyber Security",
-    previewColor: "#0284c7"
+    previewColor: "#10b981"
   },
   {
     id: 15,
@@ -149,6 +149,6 @@ export const CV_TEMPLATES: CVTemplateMeta[] = [
     hasPhoto: true,
     badge: "Specialist Pro",
     recommendedRole: "Data Scientist, Cloud Engineer, Tech Specialist, Consultant",
-    previewColor: "#3b82f6"
+    previewColor: "#fbbf24"
   }
 ];

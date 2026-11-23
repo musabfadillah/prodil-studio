@@ -25,6 +25,11 @@ const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+const parseGeneratedJson = (text) => {
+  const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  return JSON.parse(cleaned);
+};
+
 /**
  * Log AI Usage
  */
@@ -40,6 +45,85 @@ const logAiUsage = async (userId, feature, tokens = 100) => {
     console.warn('[AI Log Warning]:', err.message);
   }
 };
+
+router.post('/generate', authenticateToken, aiLimiter, async (req, res) => {
+  const { action, payload = {} } = req.body || {};
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.status(503).json({ error: 'Gemini API key belum dikonfigurasi di server.' });
+  }
+  if (!['summary', 'rewrite-bullets', 'cover-letter', 'ats-match'].includes(action)) {
+    return res.status(400).json({ error: 'Aksi AI tidak dikenali.' });
+  }
+
+  try {
+    let result;
+    if (action === 'summary') {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Write a concise, ATS-friendly professional summary in ${payload.language || 'English'} (3-4 sentences, active voice).
+Role: ${payload.headline || payload.role || 'Professional'}
+Experience: ${payload.yearsOfExperience || ''}
+Skills and experience context: ${payload.context || payload.keySkills || ''}
+Industry: ${payload.targetIndustry || ''}
+Tone: ${payload.tone || 'Professional'}
+Return only the summary paragraph.`,
+      });
+      result = (response.text || '').trim();
+      if (!result) throw new Error('Gemini returned an empty summary.');
+    } else if (action === 'rewrite-bullets') {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Rewrite the work notes in ${payload.language || 'English'} into 3-5 concise, truthful, ATS-friendly bullet points. Do not invent metrics; preserve facts and use measurable details only when provided.
+Role: ${payload.role || ''}
+Company: ${payload.company || ''}
+Notes:\n${payload.rawBullets || ''}
+${payload.jobDescription ? `Job description:\n${payload.jobDescription}` : ''}
+Return JSON only with shape {"bullets":["..."]}.`,
+        config: { responseMimeType: 'application/json', temperature: 0.4 },
+      });
+      const parsed = parseGeneratedJson(response.text);
+      result = Array.isArray(parsed.bullets) ? parsed.bullets : [];
+    } else if (action === 'cover-letter') {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Write a tailored, concise cover letter in ${payload.language || 'English'}.
+Candidate: ${payload.fullName || ''}
+Role: ${payload.targetRole || ''}
+Company: ${payload.companyName || ''}
+Recipient: ${payload.recipientName || 'Hiring Manager'}
+Profile context: ${payload.profileContext || ''}
+Job description: ${payload.jobDescription || ''}
+Return only the letter body.`,
+      });
+      result = (response.text || '').trim();
+      if (!result) throw new Error('Gemini returned an empty cover letter.');
+    } else {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Compare the candidate profile against the job description. Write all returned keywords and suggestions in ${payload.language || 'English'} when language-specific text is needed. Return valid JSON only:
+{"score":0,"matchedKeywords":[],"missingKeywords":[],"suggestions":[]}
+Use score 0-100 and give three practical suggestions.
+Candidate profile:\n${payload.cvText || ''}
+Job description:\n${payload.jobDescription || ''}`,
+        config: { responseMimeType: 'application/json', temperature: 0.2 },
+      });
+      const parsed = parseGeneratedJson(response.text);
+      result = {
+        score: Math.max(0, Math.min(100, Number(parsed.score ?? parsed.matchScore) || 0)),
+        matchedKeywords: Array.isArray(parsed.matchedKeywords) ? parsed.matchedKeywords : [],
+        missingKeywords: Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords : [],
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      };
+    }
+
+    await logAiUsage(req.user.id, `generate-${action}`);
+    return res.json({ result });
+  } catch (err) {
+    console.error(`[AI Generate Error:${action}]:`, err);
+    return res.status(500).json({ error: err.message || 'Gagal memproses permintaan AI.' });
+  }
+});
 
 /**
  * POST /api/ai/generate-summary
@@ -260,7 +344,7 @@ router.post('/generate-cover-letter', authenticateToken, aiLimiter, async (req, 
 
     // Dynamic clean fallback
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-    const fallbackBody = `Kepada Yth. ${recipientName || 'Hiring Manager'},\n${companyName}\n\nDengan hormat,\n\nSehubungan dengan informasi lowongan pekerjaan untuk posisi ${jobTitle} di ${companyName}, saya bermaksud untuk mengajukan diri guna berkontribusi secara nyata di perusahaan yang Bapak/Ibu pimpin.\n\nDengan latar belakang di bidang ${masterProfile?.personal?.headline || 'Pengembangan Produk & Teknologi'} dan rekam jejak dalam ${skillsList}, saya telah berhasil memimpin dan menyelesaikan berbagai proyek strategis yang berorientasi pada hasil dan efisiensi tinggi. Saya meyakini bahwa keahlian ini sejalan dengan kriteria yang dibutuhkan oleh ${companyName}.\n\nBesar harapan saya untuk diberikan kesempatan mendiskusikan kualifikasi saya lebih lanjut dalam sesi wawancara. Terlampir saya sertakan CV dan portofolio terkini untuk bahan pertimbangan.\n\nAtas perhatian dan kesempatan yang diberikan, saya ucapkan terima kasih.\n\nHormat saya,\n${candidateName}`;
+    const fallbackBody = `Kepada Yth. ${recipientName || 'Hiring Manager'},\n${companyName}\n\nDengan hormat,\n\nSehubungan dengan informasi lowongan pekerjaan untuk posisi ${jobTitle} di ${companyName}, saya bermaksud untuk mengajukan diri guna berkontribusi secara nyata di perusahaan yang Bapak/Ibu pimpin.\n\nDengan latar belakang di bidang ${masterProfile?.personal?.headline || 'Pengembangan Produk & Teknologi'} dan rekam jejak dalam ${skillsList}, saya telah berhasil memimpin dan menyelesaikan berbagai proyek strategis yang berorientasi pada hasil dan efisiensi tinggi. Saya meyakini bahwa keahlian ini sejalan dengan kriteria yang dibutuhkan oleh ${companyName}.\n\nBesar harapan saya untuk diberikan kesempatan mendiskusikan kualifikasi saya lebih lanjut dalam sesi wawancara. Terlampir saya sertakan CV dan dokumen pendukung untuk bahan pertimbangan.\n\nAtas perhatian dan kesempatan yang diberikan, saya ucapkan terima kasih.\n\nHormat saya,\n${candidateName}`;
 
     res.json({
       success: true,
@@ -401,6 +485,7 @@ router.post('/smart-import', authenticateToken, upload.single('file'), async (re
       return res.json({
         success: true,
         message: 'Berhasil mengekstrak data CV dengan Gemini AI!',
+        parsedProfile: parsedJson,
         data: parsedJson
       });
     }
@@ -458,6 +543,7 @@ router.post('/smart-import', authenticateToken, upload.single('file'), async (re
       success: true,
       isFallback: true,
       message: 'CV diekstrak dengan Heuristic Parser. Masukkan GEMINI_API_KEY di VPS Hostinger untuk akurasi AI maksimal.',
+      parsedProfile: heuristicData,
       data: heuristicData
     });
   } catch (err) {

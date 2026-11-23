@@ -3,11 +3,12 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { MasterProfile } from '../types/cv';
 import { X, Upload, FileText, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SmartImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProfileImported: (profile: MasterProfile) => void;
+  onProfileImported: (profile: Partial<MasterProfile>) => void;
 }
 
 export const SmartImportModal: React.FC<SmartImportModalProps> = ({
@@ -15,6 +16,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
   onClose,
   onProfileImported,
 }) => {
+  const { t } = useLanguage();
   const { isAuthenticated, openAuthModal } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [pasteText, setPasteText] = useState('');
@@ -34,7 +36,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
 
   const handleProcessImport = async () => {
     if (!isAuthenticated) {
-      setErrorMsg('Autentikasi diperlukan. Silakan masuk untuk melindungi kuota Gemini AI.');
+      setErrorMsg(t('authRequired'));
       openAuthModal('login');
       return;
     }
@@ -53,13 +55,13 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
               const parsed = JSON.parse(event.target?.result as string);
               if (parsed.personal) {
                 onProfileImported(parsed);
-                setSuccessMsg('Master Profile berhasil diimpor dari file JSON!');
+                setSuccessMsg(t('jsonImported'));
                 setTimeout(() => onClose(), 1200);
               } else {
-                setErrorMsg('Format file JSON tidak sesuai dengan struktur Master Profile.');
+                setErrorMsg(t('jsonInvalidStructure'));
               }
             } catch {
-              setErrorMsg('Gagal membaca file JSON.');
+              setErrorMsg(t('readJsonFail'));
             } finally {
               setLoading(false);
             }
@@ -75,7 +77,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
           setSuccessMsg(res.message || 'CV berhasil diekstrak dengan Gemini AI!');
           setTimeout(() => onClose(), 1500);
         } else {
-          setErrorMsg(res.message || 'Gagal mengekstrak isi resume.');
+          setErrorMsg(res.message || t('extracting'));
         }
       } else if (mode === 'text' && pasteText.trim()) {
         const dummyBlob = new Blob([pasteText], { type: 'text/plain' });
@@ -83,13 +85,13 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
         const res = await api.smartImportFile(textFile);
         if (res.success && res.data) {
           onProfileImported(res.data);
-          setSuccessMsg('CV berhasil diurai!');
+          setSuccessMsg(t('resumeParsed'));
           setTimeout(() => onClose(), 1500);
         } else {
           setErrorMsg(res.message || 'Gagal mengurai teks resume.');
         }
       } else {
-        setErrorMsg('Pilih file resume atau tempel teks CV kamu.');
+        setErrorMsg(t('chooseResume'));
       }
     } catch (err: any) {
       if (err.message === 'AUTH_REQUIRED') {
@@ -112,8 +114,8 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
               <Sparkles size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">AI CV Parser / Smart Import</h3>
-              <p className="text-[11px] text-slate-500">Ekstrak otomatis isi CV lama (.pdf, .docx, .json)</p>
+              <h3 className="font-bold text-sm text-slate-900">{t('smartTitle')}</h3>
+              <p className="text-[11px] text-slate-500">{t('smartSubtitle')}</p>
             </div>
           </div>
           <button
@@ -147,7 +149,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                 mode === 'file' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'
               }`}
             >
-              Unggah File (.pdf / .docx / .json)
+              {t('uploadFile')}
             </button>
             <button
               onClick={() => setMode('text')}
@@ -155,7 +157,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                 mode === 'text' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'
               }`}
             >
-              Tempel Teks Mentah
+              {t('pasteText')}
             </button>
           </div>
 
@@ -173,10 +175,10 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                   <Upload size={22} />
                 </div>
                 <span className="text-xs font-bold text-slate-800">
-                  {file ? file.name : 'Klik untuk memilih file CV lama'}
+                  {file ? file.name : t('chooseFile')}
                 </span>
                 <span className="text-[11px] text-slate-500 mt-1">
-                  Mendukung PDF, DOCX (Word), JSON Backup, TXT (Maks. 10MB)
+                  {t('uploadSupport')}
                 </span>
               </label>
             </div>
@@ -186,7 +188,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
                 rows={6}
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
-                placeholder="Tempel teks resume atau riwayat kerja kamu di sini..."
+                placeholder={t('pastePlaceholder')}
                 className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
               />
             </div>
@@ -194,7 +196,7 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
 
           <div className="mt-5 flex items-center justify-between">
             <p className="text-[11px] text-slate-500 flex items-center gap-1">
-              <Sparkles size={12} className="text-amber-500" /> Ditenagai Google Gemini 2.5 Flash
+              <Sparkles size={12} className="text-amber-500" /> {t('poweredBy')}
             </p>
 
             <button
@@ -205,11 +207,11 @@ export const SmartImportModal: React.FC<SmartImportModalProps> = ({
               {loading ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Mengekstrak Data...
+                  {t('extracting')}
                 </>
               ) : (
                 <>
-                  <Sparkles size={14} /> Ekstrak ke Formulir
+                  <Sparkles size={14} /> {t('extractForm')}
                 </>
               )}
             </button>

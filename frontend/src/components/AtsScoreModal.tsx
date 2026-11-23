@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, CheckCircle2, ShieldCheck, Sparkles, AlertTriangle } from 'lucide-react';
 import { MasterProfile } from '../types/cv';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AtsScoreModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface AtsScoreModalProps {
 }
 
 export const AtsScoreModal: React.FC<AtsScoreModalProps> = ({ isOpen, onClose, profile }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const hasEmail = !!profile.personal.email;
@@ -37,8 +39,8 @@ export const AtsScoreModal: React.FC<AtsScoreModalProps> = ({ isOpen, onClose, p
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Analisis ATS Score (Applicant Tracking System)</h3>
-              <p className="text-[11px] text-slate-500">Standar kompatibilitas rekrutmen global 2026</p>
+              <h3 className="font-bold text-sm text-slate-900">{t('atsTitle')}</h3>
+              <p className="text-[11px] text-slate-500">{t('atsSubtitle')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
@@ -51,64 +53,64 @@ export const AtsScoreModal: React.FC<AtsScoreModalProps> = ({ isOpen, onClose, p
             <div>
               <div className="text-3xl font-black text-emerald-700">{score}/100</div>
               <div className="text-xs font-bold text-emerald-800 mt-0.5">
-                {score >= 90 ? 'ATS Ready & Sangat Direkomendasikan' : 'Cukup Baik - Lengkapi Detail'}
+                {score >= 90 ? t('atsReadyStatus') : t('atsImprove')}
               </div>
             </div>
             <div className="text-right text-[11px] text-emerald-700">
               <span className="inline-block px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-800 font-bold">
-                100% Vector Text
+                {t('vectorText')}
               </span>
             </div>
           </div>
 
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Checklist Kompatibilitas ATS:</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">{t('atsChecklist')}:</h4>
           <div className="space-y-2.5 text-xs">
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
                 <CheckCircle2 size={16} className="text-emerald-500" />
-                Format PDF Vektor Teks Asli (Tanpa html2canvas)
+                {t('atsVector')}
               </span>
-              <span className="font-bold text-emerald-600">+25 Poin</span>
+              <span className="font-bold text-emerald-600">+25 {t('plusPoints')}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
-                <CheckCircle2 size={16} className={hasEmail && hasPhone ? 'text-emerald-500' : 'text-amber-500'} />
-                Kontak Lengkap (Email & Nomor HP)
+                <CheckCircle2 size={16} className={hasEmail && hasPhone && hasLocation ? 'text-emerald-500' : 'text-amber-500'} />
+                {t('atsContact')}
               </span>
-              <span className="font-bold text-slate-700">+20 Poin</span>
+              <span className="font-bold text-slate-700">+30 {t('plusPoints')}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
                 <CheckCircle2 size={16} className={hasSummary ? 'text-emerald-500' : 'text-amber-500'} />
-                Professional Summary Terstruktur
+                {t('atsSummary')}
               </span>
-              <span className="font-bold text-slate-700">+15 Poin</span>
+              <span className="font-bold text-slate-700">+15 {t('plusPoints')}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
                 <CheckCircle2 size={16} className={hasExperience ? 'text-emerald-500' : 'text-amber-500'} />
-                Riwayat Pengalaman Kerja Terurut
+                {t('atsExperience')}
               </span>
-              <span className="font-bold text-slate-700">+15 Poin</span>
+              <span className="font-bold text-slate-700">+15 {t('plusPoints')}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
                 <CheckCircle2 size={16} className={hasEducation ? 'text-emerald-500' : 'text-amber-500'} />
-                Riwayat Pendidikan Terakreditasi
+                {t('atsEducation')}
               </span>
-              <span className="font-bold text-slate-700">+10 Poin</span>
+              <span className="font-bold text-slate-700">+10 {t('plusPoints')}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <span className="flex items-center gap-2 text-slate-800">
                 <CheckCircle2 size={16} className={hasSkills ? 'text-emerald-500' : 'text-amber-500'} />
-                Daftar Keahlian Kunci & Tools (&ge; 5 skills)
+                {t('atsSkills')} {t('atsSkillsThreshold')}
               </span>
-              <span className="font-bold text-slate-700">+15 Poin</span>
+              <span className="font-bold text-slate-700">+5 {t('plusPoints')}</span>
             </div>
           </div>
 
@@ -116,7 +118,7 @@ export const AtsScoreModal: React.FC<AtsScoreModalProps> = ({ isOpen, onClose, p
             onClick={onClose}
             className="mt-6 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all"
           >
-            Tutup
+            {t('close')}
           </button>
         </div>
       </div>
