@@ -370,7 +370,7 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
 
           {/* Right Panel: Live Document Preview */}
           <div
-            data-print-cv-preview="true"
+            data-print-document-preview="true"
             className={`min-w-0 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}
           >
             <DocumentPreview

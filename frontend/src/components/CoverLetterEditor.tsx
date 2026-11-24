@@ -110,7 +110,10 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
       </div>
 
       {/* Right Live Preview */}
-      <div className={`min-w-0 rounded-2xl border border-slate-300 bg-slate-200/70 p-4 sm:p-6 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}>
+      <div
+        data-print-document-preview="true"
+        className={`min-w-0 rounded-2xl border border-slate-300 bg-slate-200/70 p-4 sm:p-6 lg:sticky lg:top-20 lg:col-span-7 ${mobilePane === 'edit' ? 'hidden lg:block' : ''}`}
+      >
         <div className="no-print flex justify-between items-center mb-4">
           <span className="text-xs font-bold text-slate-700">{t('livePreview')}</span>
           <button
