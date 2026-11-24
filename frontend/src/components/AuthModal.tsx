@@ -32,6 +32,12 @@ declare global {
 }
 
 const GOOGLE_IDENTITY_SCRIPT = 'https://accounts.google.com/gsi/client';
+let initializedGoogleClientId: string | null = null;
+let currentGoogleCredentialHandler: ((response: GoogleCredentialResponse) => void) | null = null;
+
+const handleGoogleCredential = (response: GoogleCredentialResponse) => {
+  currentGoogleCredentialHandler?.(response);
+};
 
 export const AuthModal: React.FC = () => {
   const { t } = useLanguage();
@@ -58,6 +64,31 @@ export const AuthModal: React.FC = () => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || '';
   const loginWithGoogleRef = useRef(loginWithGoogle);
   loginWithGoogleRef.current = loginWithGoogle;
+  const googleCredentialHandlerRef = useRef<(response: GoogleCredentialResponse) => void>(() => {});
+  googleCredentialHandlerRef.current = (response) => {
+    if (!response.credential) {
+      setErrorMsg('Google tidak mengembalikan kredensial login.');
+      return;
+    }
+    setErrorMsg('');
+    setIsSubmitting(true);
+    void loginWithGoogleRef.current(response.credential)
+      .then((result) => {
+        if (!result.success) setErrorMsg(result.message);
+      })
+      .catch((error: unknown) => {
+        setErrorMsg(error instanceof Error ? error.message : 'Login Google gagal.');
+      })
+      .finally(() => setIsSubmitting(false));
+  };
+
+  useEffect(() => {
+    const handler = (response: GoogleCredentialResponse) => googleCredentialHandlerRef.current(response);
+    currentGoogleCredentialHandler = handler;
+    return () => {
+      if (currentGoogleCredentialHandler === handler) currentGoogleCredentialHandler = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (!authModalOpen || authModalView === 'verify') return;
@@ -67,26 +98,18 @@ export const AuthModal: React.FC = () => {
     let active = true;
     const initializeGoogleButton = () => {
       if (!active || !window.google?.accounts.id || !container.isConnected) return;
+      if (initializedGoogleClientId && initializedGoogleClientId !== googleClientId) {
+        setErrorMsg('Client ID Google berubah setelah layanan login diinisialisasi. Muat ulang halaman.');
+        return;
+      }
       container.replaceChildren();
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: (response) => {
-          if (!response.credential) {
-            setErrorMsg('Google tidak mengembalikan kredensial login.');
-            return;
-          }
-          setErrorMsg('');
-          setIsSubmitting(true);
-          void loginWithGoogleRef.current(response.credential)
-            .then((result) => {
-              if (!result.success) setErrorMsg(result.message);
-            })
-            .catch((error: unknown) => {
-              setErrorMsg(error instanceof Error ? error.message : 'Login Google gagal.');
-            })
-            .finally(() => setIsSubmitting(false));
-        },
-      });
+      if (!initializedGoogleClientId) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredential,
+        });
+        initializedGoogleClientId = googleClientId;
+      }
       window.google.accounts.id.renderButton(container, {
         theme: 'outline',
         size: 'large',
